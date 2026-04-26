@@ -27,3 +27,12 @@
 - [x] Call saveProgress from frontend after each AI exchange + after data extraction completes
 - [x] Google Sheets: use sessionId as a row key so partial rows are updated in-place, not duplicated
 - [x] Update vitest tests to cover saveProgress procedure (13 tests total, all passing)
+
+## Apps Script Upsert + Admin Dashboard
+- [x] Write updated Google Apps Script with upsert-by-sessionId logic
+- [x] Build /admin route with protected dashboard showing all submissions
+- [x] Admin dashboard: table of In Progress + Completed rows, sortable by date
+- [x] Admin dashboard: owner-only access (role check)
+- [x] Add admin server-side procedure to list all intakes
+- [x] Run tests and save checkpoint (15 tests, all passing)
+- [x] Guide user to publish

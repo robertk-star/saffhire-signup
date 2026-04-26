@@ -7,7 +7,8 @@
  */
 
 import { z } from "zod";
-import { publicProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import { buildSystemPrompt } from "./_core/claudeQuestionnaire";
@@ -198,6 +199,51 @@ Extract the value for "${fieldLabel}".`,
       }).catch((err) => console.error("[SaveProgress] Sheets log failed:", err));
 
       return { saved: true };
+    }),
+
+  // ─── List Intakes (admin only) ────────────────────────────────────────────────────
+
+  listIntakes: protectedProcedure.use(({ ctx, next }) => {
+    // Only the owner (admin role) can list all intake submissions
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
+    }
+    return next({ ctx });
+  })
+    .input(
+      z.object({
+        status: z.enum(["all", "In Progress", "Completed"]).optional().default("all"),
+        limit: z.number().min(1).max(200).optional().default(100),
+        offset: z.number().min(0).optional().default(0),
+      })
+    )
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { rows: [], total: 0 };
+
+      try {
+        const { desc, eq: eqOp } = await import("drizzle-orm");
+
+        const rows = input.status === "all"
+          ? await db
+              .select()
+              .from(signupIntakes)
+              .orderBy(desc(signupIntakes.updatedAt))
+              .limit(input.limit)
+              .offset(input.offset)
+          : await db
+              .select()
+              .from(signupIntakes)
+              .where(eqOp(signupIntakes.status, input.status as "In Progress" | "Completed"))
+              .orderBy(desc(signupIntakes.updatedAt))
+              .limit(input.limit)
+              .offset(input.offset);
+
+        return { rows, total: rows.length };
+      } catch (err) {
+        console.error("[listIntakes] query failed:", err);
+        return { rows: [], total: 0 };
+      }
     }),
 
   // ─── Submit Intake ──────────────────────────────────────────────────────────

@@ -26,16 +26,23 @@ vi.mock("./_core/gohighlevel", () => ({
   createGHLOpportunity: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Build a chainable query mock that resolves to [] at any terminal call
+function makeSelectChain(resolveValue: unknown[] = []) {
+  const terminal = vi.fn().mockResolvedValue(resolveValue);
+  const chain: Record<string, unknown> = {};
+  // All Drizzle query builder methods return the same chain object
+  const methods = ["from", "where", "orderBy", "limit", "offset"];
+  for (const m of methods) {
+    chain[m] = vi.fn().mockReturnValue(chain);
+  }
+  // Make the chain itself thenable (await chain === resolveValue)
+  chain.then = (resolve: (v: unknown) => void) => Promise.resolve(resolveValue).then(resolve);
+  return chain;
+}
+
 vi.mock("./db", () => ({
   getDb: vi.fn().mockResolvedValue({
-    // select().from().where().limit() chain for saveProgress upsert check
-    select: vi.fn().mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockResolvedValue([]), // empty = no existing row → insert path
-        }),
-      }),
-    }),
+    select: vi.fn().mockImplementation(() => makeSelectChain([])),
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockResolvedValue(undefined),
     }),
@@ -55,6 +62,24 @@ import type { TrpcContext } from "./_core/context";
 function createPublicContext(): TrpcContext {
   return {
     user: null,
+    req: { protocol: "https", headers: {} } as TrpcContext["req"],
+    res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+  };
+}
+
+function createAuthContext(role: "admin" | "user" = "admin"): TrpcContext {
+  return {
+    user: {
+      id: 1,
+      openId: "owner-open-id",
+      name: "Robert K",
+      email: "robertk@saffhire.com",
+      loginMethod: "manus",
+      role,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      lastSignedIn: new Date(),
+    },
     req: { protocol: "https", headers: {} } as TrpcContext["req"],
     res: { clearCookie: vi.fn() } as unknown as TrpcContext["res"],
   };
@@ -228,6 +253,54 @@ describe("signup.saveProgress", () => {
         sessionId: "abcdef123456",
       })
     );
+  });
+});
+
+describe("signup.listIntakes", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns rows and total for an admin user", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.signup.listIntakes({ status: "all", limit: 10, offset: 0 });
+
+    expect(result).toHaveProperty("rows");
+    expect(result).toHaveProperty("total");
+    expect(Array.isArray(result.rows)).toBe(true);
+  });
+
+  it("accepts status filter without throwing for admin", async () => {
+    const ctx = createAuthContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.signup.listIntakes({ status: "Completed", limit: 10, offset: 0 })
+    ).resolves.toBeDefined();
+
+    await expect(
+      caller.signup.listIntakes({ status: "In Progress", limit: 10, offset: 0 })
+    ).resolves.toBeDefined();
+  });
+
+  it("throws FORBIDDEN for a non-admin user", async () => {
+    const ctx = createAuthContext("user");
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.signup.listIntakes({ status: "all", limit: 10, offset: 0 })
+    ).rejects.toMatchObject({ code: "FORBIDDEN" });
+  });
+
+  it("throws UNAUTHORIZED for an unauthenticated caller", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.signup.listIntakes({ status: "all", limit: 10, offset: 0 })
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });
 
