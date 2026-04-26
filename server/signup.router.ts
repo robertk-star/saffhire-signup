@@ -300,7 +300,6 @@ Extract the value for "${fieldLabel}".`,
       z.object({
         // Section 1
         companyName: z.string().min(1),
-        companyLogoUrl: z.string().optional(),
         ein: z.string().min(1),
         businessEntity: z.string().min(1),
         ownerFirstName: z.string().min(1),
@@ -350,7 +349,6 @@ Extract the value for "${fieldLabel}".`,
           await db.insert(signupIntakes).values({
             status: "Completed",
             companyName: input.companyName,
-            companyLogoUrl: input.companyLogoUrl,
             ein: input.ein,
             businessEntity: input.businessEntity,
             ownerFirstName: input.ownerFirstName,
