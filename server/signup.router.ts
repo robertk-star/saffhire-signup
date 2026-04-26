@@ -11,7 +11,7 @@ import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
-import { buildSystemPrompt } from "./_core/claudeQuestionnaire";
+import { buildSystemPrompt, SECTIONS } from "./_core/claudeQuestionnaire";
 // Google Sheets sync moved to scheduled task (see scheduled-sync.mjs)
 import { upsertGHLContact, createGHLOpportunity } from "./_core/gohighlevel";
 import { eq } from "drizzle-orm";
@@ -69,6 +69,56 @@ Please continue the conversation naturally based on what's been collected and wh
     }),
 
   // ─── Extract Field Value ────────────────────────────────────────────────────
+
+  extractAllFields: publicProcedure
+    .input(
+      z.object({
+        conversationHistory: z.array(
+          z.object({
+            role: z.enum(["user", "assistant"]),
+            content: z.string(),
+          })
+        ),
+        sectionIndex: z.number().min(0).max(4),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { conversationHistory, sectionIndex } = input;
+      const section = SECTIONS[sectionIndex];
+      if (!section) {
+        return { data: {} };
+      }
+
+      const conversationText = conversationHistory
+        .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
+        .join("\n");
+
+      const fieldsList = section.fields
+        .map((f) => `- ${f.label} (${f.key})`)
+        .join("\n");
+
+      const response = await invokeLLM({
+        messages: [
+          {
+            role: "system",
+            content: `You are a data extraction assistant. Extract values from the conversation for the following fields. Return a JSON object with keys matching the field names. For fields not mentioned, use null.\n\nFields to extract:\n${fieldsList}`,
+          },
+          {
+            role: "user",
+            content: `Extract all field values from this conversation:\n\n${conversationText}\n\nReturn ONLY valid JSON with the field keys and extracted values.`,
+          },
+        ],
+      });
+
+      try {
+        const rawVal = response?.choices?.[0]?.message?.content;
+        const raw = typeof rawVal === "string" ? rawVal : "{}";
+        const parsed = JSON.parse(raw) as Record<string, string | null>;
+        return { data: parsed };
+      } catch {
+        return { data: {} };
+      }
+    }),
 
   extractFieldValue: publicProcedure
     .input(

@@ -488,31 +488,32 @@ export default function AccountSetup() {
         );
       }
 
-      // Extract all fields in parallel (fire and forget — update state as they come in)
+      // Extract all fields at once using dedicated extraction procedure
       const updates: Record<string, string> = {};
-      await Promise.all(
-        fieldsToExtract.map(async ([key, label]) => {
-          if (intakeData[key as keyof IntakeData]) return; // already have it
-          try {
-            const res = await getNextMessage.mutateAsync({
-              messages: [
-                {
-                  role: "user",
-                  content: `Extract the value for "${label}" from this conversation. Return ONLY the value, nothing else. If not mentioned, return empty string.\n\nConversation:\n${contextStr}`,
-                },
-              ],
-              collectedData: {},
-              currentSection: 99, // signal extraction mode
-            });
-            const val = res.message.trim();
-            if (val && val.length < 200 && !val.toLowerCase().includes("not mentioned")) {
-              updates[key] = val;
-            }
-          } catch {
-            // ignore extraction errors
+      try {
+        const extractRes = await fetch('/api/trpc/signup.extractAllFields', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            json: {
+              conversationHistory: allMessages,
+              sectionIndex: currentSection,
+            },
+          }),
+        }).then((r) => r.json());
+        
+        const extractData = extractRes[0]?.result?.data?.json?.data || {};
+        
+        // Merge extracted values, skipping nulls and empty strings
+        for (const [key, value] of Object.entries(extractData)) {
+          if (value && typeof value === 'string' && value.length > 0 && value.length < 500) {
+            updates[key] = value;
           }
-        })
-      );
+        }
+      } catch (err) {
+        console.error("[Extraction] Error:", err);
+        // continue without extraction if it fails
+      }
 
       // Merge updates into intake data
       const mergedData = Object.keys(updates).length > 0
