@@ -370,7 +370,18 @@ Extract the value for "${fieldLabel}".`,
             billingCity: input.billingCity,
             billingState: input.billingState,
             billingZip: input.billingZip,
-            adminUsers: adminUsersJson,
+            admin1FirstName: input.adminUsers[0]?.firstName,
+            admin1LastName: input.adminUsers[0]?.lastName,
+            admin1Email: input.adminUsers[0]?.email,
+            admin1Mobile: input.adminUsers[0]?.phone,
+            admin2FirstName: input.adminUsers[1]?.firstName,
+            admin2LastName: input.adminUsers[1]?.lastName,
+            admin2Email: input.adminUsers[1]?.email,
+            admin2Mobile: input.adminUsers[1]?.phone,
+            admin3FirstName: input.adminUsers[2]?.firstName,
+            admin3LastName: input.adminUsers[2]?.lastName,
+            admin3Email: input.adminUsers[2]?.email,
+            admin3Mobile: input.adminUsers[2]?.phone,
             conversationLog: conversationLogJson,
           });
           console.log("[Intake] Saved to database.");
@@ -477,7 +488,7 @@ Extract the value for "${fieldLabel}".`,
               billingCity: row.billingCity,
               billingState: row.billingState,
               billingZip: row.billingZip,
-              adminUsers: row.adminUsers,
+
               submittedAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
             };
 
@@ -522,6 +533,36 @@ Extract the value for "${fieldLabel}".`,
       } catch (err) {
         console.error("[ManualSync] Error:", err);
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Sync failed" });
+      }
+    }),
+
+  uploadCompanyLogo: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string(),
+        fileData: z.string(),
+        fileName: z.string(),
+        mimeType: z.string(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { sessionId, fileData, fileName, mimeType } = input;
+      try {
+        const { storagePut } = await import("./storage");
+        const buffer = Buffer.from(fileData, "base64");
+        const fileKey = `company-logos/${sessionId}/${fileName}`;
+        const { url, key } = await storagePut(fileKey, buffer, mimeType);
+        const db = await getDb();
+        if (db) {
+          await db
+            .update(signupIntakes)
+            .set({ companyLogoUrl: url, companyLogoKey: key })
+            .where(eq(signupIntakes.sessionId, sessionId));
+        }
+        return { url, key, success: true };
+      } catch (err) {
+        console.error("[Logo Upload] Error:", err);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Logo upload failed" });
       }
     }),
 });

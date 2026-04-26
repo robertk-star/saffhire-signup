@@ -28,6 +28,7 @@ export const signupIntakes = mysqlTable("signupIntakes", {
 
   // Section 1 – Client Information
   companyName: varchar("companyName", { length: 255 }),
+  companyLogoUrl: text("companyLogoUrl"),
   dba: varchar("dba", { length: 255 }),
   ein: varchar("ein", { length: 64 }),
   businessType: varchar("businessType", { length: 128 }),
@@ -40,6 +41,7 @@ export const signupIntakes = mysqlTable("signupIntakes", {
   ownerTitle: varchar("ownerTitle", { length: 128 }),
 
   // Section 2 – Contact Information (optional)
+  companyLogoKey: varchar("companyLogoKey", { length: 255 }),
   contactFirstName: varchar("contactFirstName", { length: 128 }),
   contactLastName: varchar("contactLastName", { length: 128 }),
   contactEmail: varchar("contactEmail", { length: 320 }),
@@ -66,8 +68,27 @@ export const signupIntakes = mysqlTable("signupIntakes", {
   billingCountry: varchar("billingCountry", { length: 128 }),
   billingAttention: varchar("billingAttention", { length: 255 }),
 
-  // Section 5 – Admin Users (up to 3, stored as JSON)
-  adminUsers: text("adminUsers"), // JSON array of { firstName, lastName, jobTitle, email, phone }
+
+
+  // Section 5 – Admin Users (up to 3)
+  admin1FirstName: varchar("admin1FirstName", { length: 128 }),
+  admin1LastName: varchar("admin1LastName", { length: 128 }),
+  admin1Email: varchar("admin1Email", { length: 320 }),
+  admin1Mobile: varchar("admin1Mobile", { length: 64 }),
+  admin1JobTitle: varchar("admin1JobTitle", { length: 128 }),
+  admin1Status: varchar("admin1Status", { length: 32 }),
+  admin2FirstName: varchar("admin2FirstName", { length: 128 }),
+  admin2LastName: varchar("admin2LastName", { length: 128 }),
+  admin2Email: varchar("admin2Email", { length: 320 }),
+  admin2Mobile: varchar("admin2Mobile", { length: 64 }),
+  admin2JobTitle: varchar("admin2JobTitle", { length: 128 }),
+  admin2Status: varchar("admin2Status", { length: 32 }),
+  admin3FirstName: varchar("admin3FirstName", { length: 128 }),
+  admin3LastName: varchar("admin3LastName", { length: 128 }),
+  admin3Email: varchar("admin3Email", { length: 320 }),
+  admin3Mobile: varchar("admin3Mobile", { length: 64 }),
+  admin3JobTitle: varchar("admin3JobTitle", { length: 128 }),
+  admin3Status: varchar("admin3Status", { length: 32 }),
 
   // Section 6 – Signature
   authorizedSignature: varchar("authorizedSignature", { length: 255 }),

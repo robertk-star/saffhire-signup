@@ -83,3 +83,24 @@
 - [x] Update review screen to show all users with their access levels
 - [x] Test end-to-end flow with 1, 2, and 3 users (14 tests passing)
 - [x] Save checkpoint and publish
+
+
+## Admin Fields Refactor (Database Schema)
+
+- [x] Migrate adminUsers JSON blob to individual admin1/admin2/admin3 fields in database schema
+- [x] Update server router to map form data to individual admin fields
+- [x] Update Admin.tsx IntakeRow type to use individual admin fields
+- [x] Update IntakeDetailModal to display individual admin fields instead of parsing JSON
+- [x] Verify all tests pass (14 tests passing)
+- [x] TypeScript compilation successful
+
+## Company Logo Upload Feature
+
+- [ ] Add companyLogoUrl field to schema
+- [ ] Add uploadCompanyLogo tRPC procedure with S3 storage
+- [ ] Add file upload input to Client Information step
+- [ ] Display logo preview after upload
+- [ ] Show logo on success screen
+- [ ] Update review screen to display logo
+- [ ] Add tests for logo upload
+- [ ] Save checkpoint and publish

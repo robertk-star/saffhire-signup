@@ -52,7 +52,18 @@ type IntakeRow = {
   billingCity: string | null;
   billingState: string | null;
   billingZip: string | null;
-  adminUsers: string | null;
+  admin1FirstName: string | null;
+  admin1LastName: string | null;
+  admin1Email: string | null;
+  admin1Mobile: string | null;
+  admin2FirstName: string | null;
+  admin2LastName: string | null;
+  admin2Email: string | null;
+  admin2Mobile: string | null;
+  admin3FirstName: string | null;
+  admin3LastName: string | null;
+  admin3Email: string | null;
+  admin3Mobile: string | null;
   conversationLog: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -84,13 +95,11 @@ function IntakeDetailModal({
   intake: IntakeRow;
   onClose: () => void;
 }) {
-  const adminUsers = (() => {
-    try {
-      return intake.adminUsers ? JSON.parse(intake.adminUsers) : [];
-    } catch {
-      return [];
-    }
-  })();
+  const adminUsers = [
+    intake.admin1FirstName ? { firstName: intake.admin1FirstName, lastName: intake.admin1LastName || "", email: intake.admin1Email || "", phone: intake.admin1Mobile || undefined } : null,
+    intake.admin2FirstName ? { firstName: intake.admin2FirstName, lastName: intake.admin2LastName || "", email: intake.admin2Email || "", phone: intake.admin2Mobile || undefined } : null,
+    intake.admin3FirstName ? { firstName: intake.admin3FirstName, lastName: intake.admin3LastName || "", email: intake.admin3Email || "", phone: intake.admin3Mobile || undefined } : null,
+  ].filter(Boolean) as Array<{ firstName: string; lastName: string; email: string; phone?: string }>;
 
   const Section = ({
     title,
