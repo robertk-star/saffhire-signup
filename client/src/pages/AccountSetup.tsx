@@ -21,7 +21,6 @@ const STEPS = [
 interface FormData {
   // Client Info
   companyName: string;
-  companyLogoUrl: string;
   dba: string;
   ein: string;
   businessType: string;
@@ -86,7 +85,7 @@ interface FormData {
 
 const initialFormData: FormData = {
   companyName: "",
-  companyLogoUrl: "",
+
   dba: "",
   ein: "",
   businessType: "",
@@ -241,7 +240,7 @@ export default function AccountSetup() {
   const handleSubmit = async () => {
     submitIntake.mutate({
       companyName: formData.companyName,
-      companyLogoUrl: formData.companyLogoUrl,
+
       ein: formData.ein,
       businessEntity: formData.businessEntity,
       ownerFirstName: formData.ownerName.split(" ")[0] || "",
@@ -314,7 +313,7 @@ export default function AccountSetup() {
       {/* Header */}
       <div className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-4 py-6">
-          <img src="/manus-storage/SaffhireLogoShirtStyle_a1b2c3d4.webp" alt="SaffHire" className="h-12" />
+          <img src="/manus-storage/SaffhireLogoShirtStyle_300428e9.webp" alt="SaffHire" className="h-16 w-auto" />
         </div>
       </div>
 
@@ -436,8 +435,6 @@ function FormStep({ step, formData, errors, onChange }: FormStepProps) {
             ))}
           </div>
         </FormField>
-
-        <CompanyLogoUpload formData={formData} onChange={onChange} sessionId={sessionId} />
       </div>
     );
   }
@@ -763,15 +760,6 @@ function ReviewScreen({ formData }: { formData: FormData }) {
     <div className="space-y-6">
       <Card className="p-6">
         <h3 className="font-semibold mb-4">Client Information</h3>
-        {formData.companyLogoUrl && (
-          <div className="mb-4 pb-4 border-b border-border">
-            <img
-              src={formData.companyLogoUrl}
-              alt="Company Logo"
-              className="h-20 w-auto object-contain"
-            />
-          </div>
-        )}
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
             <p className="text-muted-foreground">Company Name</p>
@@ -869,90 +857,4 @@ function ReviewScreen({ formData }: { formData: FormData }) {
 }
 
 
-interface CompanyLogoUploadProps {
-  formData: FormData;
-  onChange: (field: keyof FormData, value: string | boolean) => void;
-  sessionId: string;
-}
 
-function CompanyLogoUpload({ formData, onChange, sessionId }: CompanyLogoUploadProps) {
-  const uploadLogo = trpc.signup.uploadCompanyLogo.useMutation();
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("File size must be less than 5MB");
-      return;
-    }
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please upload an image file");
-      return;
-    }
-
-    try {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        const base64 = (event.target?.result as string)?.split(",")[1];
-        if (!base64) return;
-
-        try {
-          const result = await uploadLogo.mutateAsync({
-            sessionId,
-            fileData: base64,
-            fileName: file.name,
-            mimeType: file.type,
-          });
-
-          onChange("companyLogoUrl", result.url);
-          toast.success("Logo uploaded successfully");
-        } catch (err) {
-          toast.error("Failed to upload logo");
-          console.error(err);
-        }
-      };
-      reader.readAsDataURL(file);
-    } catch (err) {
-      toast.error("Failed to read file");
-      console.error(err);
-    }
-  };
-
-  return (
-    <FormField label="Company Logo (Optional)">
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <Input
-            type="file"
-            accept="image/*"
-            onChange={handleFileChange}
-            disabled={uploadLogo.isPending}
-            className="flex-1"
-          />
-          {uploadLogo.isPending && <span className="text-sm text-muted-foreground">Uploading...</span>}
-        </div>
-        {formData.companyLogoUrl && (
-          <div className="flex items-center gap-4">
-            <img
-              src={formData.companyLogoUrl}
-              alt="Company Logo"
-              className="h-16 w-auto object-contain border border-border rounded p-2"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => onChange("companyLogoUrl", "")}
-            >
-              Remove
-            </Button>
-          </div>
-        )}
-      </div>
-    </FormField>
-  );
-}

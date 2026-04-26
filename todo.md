@@ -94,16 +94,13 @@
 - [x] Verify all tests pass (14 tests passing)
 - [x] TypeScript compilation successful
 
-## Company Logo Upload Feature
+## SaffHire Logo Display
 
-- [x] Add companyLogoUrl field to schema
-- [x] Add uploadCompanyLogo tRPC procedure with S3 storage
-- [x] Add file upload input to Client Information step
-- [x] Display logo preview after upload
-- [x] Update review screen to display logo
-- [x] Add companyLogoUrl to submitIntake input schema
-- [x] Fix sessionId undefined error in FormStep component
-- [x] Create local sessionId in FormStep instead of passing as prop
-- [x] Add Vitest tests for uploadCompanyLogo (3 tests added)
+- [x] Remove client logo upload feature from form
+- [x] Remove companyLogoUrl from FormData interface
+- [x] Remove CompanyLogoUpload component
+- [x] Remove logo display from ReviewScreen
+- [x] Upload SaffHire logo to storage
+- [x] Update header to display SaffHire logo in top-left
 - [x] All 17 tests passing, zero TypeScript errors
-- [x] Logo upload field now renders correctly in Client Information step
+- [x] SaffHire logo now displays properly in form header
