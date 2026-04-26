@@ -102,7 +102,8 @@
 - [x] Display logo preview after upload
 - [x] Update review screen to display logo
 - [x] Add companyLogoUrl to submitIntake input schema
-- [x] Pass stable sessionId from parent to CompanyLogoUpload component
+- [x] Fix sessionId undefined error in FormStep component
+- [x] Create local sessionId in FormStep instead of passing as prop
 - [x] Add Vitest tests for uploadCompanyLogo (3 tests added)
 - [x] All 17 tests passing, zero TypeScript errors
-- [x] Save checkpoint and publish
+- [x] Logo upload field now renders correctly in Client Information step
