@@ -28,7 +28,7 @@ export const signupRouter = router({
       z.object({
         messages: z.array(MessageSchema),
         collectedData: z.record(z.string(), z.string()).optional(),
-        currentSection: z.number().min(0).max(4).optional(),
+        currentSection: z.number().min(0).optional(),
       })
     )
     .mutation(async ({ input }) => {
