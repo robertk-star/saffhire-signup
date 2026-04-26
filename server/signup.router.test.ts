@@ -295,3 +295,79 @@ describe("signup.getNextMessage", () => {
     expect(result).toHaveProperty("isComplete");
   });
 });
+
+
+describe("signup.uploadCompanyLogo", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("uploads logo and returns URL and key", async () => {
+    // Mock storagePut
+    vi.doMock("./storage", () => ({
+      storagePut: vi.fn().mockResolvedValue({
+        url: "/manus-storage/test-logo.png",
+        key: "company-logos/session-123/test-logo.png",
+      }),
+    }));
+
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.signup.uploadCompanyLogo({
+      sessionId: "session-123",
+      fileData: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      fileName: "test-logo.png",
+      mimeType: "image/png",
+    });
+
+    expect(result).toEqual({
+      url: "/manus-storage/test-logo.png",
+      key: "company-logos/session-123/test-logo.png",
+      success: true,
+    });
+  });
+
+  it("updates database with logo URL and key", async () => {
+    const { getDb } = await import("./db");
+    const mockDb = await getDb();
+
+    vi.doMock("./storage", () => ({
+      storagePut: vi.fn().mockResolvedValue({
+        url: "/manus-storage/test-logo.png",
+        key: "company-logos/session-123/test-logo.png",
+      }),
+    }));
+
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.signup.uploadCompanyLogo({
+      sessionId: "session-123",
+      fileData: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+      fileName: "test-logo.png",
+      mimeType: "image/png",
+    });
+
+    // Verify that update was called on the database
+    expect(mockDb?.update).toHaveBeenCalled();
+  });
+
+  it("handles upload errors gracefully", async () => {
+    vi.doMock("./storage", () => ({
+      storagePut: vi.fn().mockRejectedValue(new Error("Upload failed")),
+    }));
+
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(
+      caller.signup.uploadCompanyLogo({
+        sessionId: "session-123",
+        fileData: "invalid-base64",
+        fileName: "test-logo.png",
+        mimeType: "image/png",
+      })
+    ).rejects.toThrow("Logo upload failed");
+  });
+});

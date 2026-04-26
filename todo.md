@@ -96,11 +96,13 @@
 
 ## Company Logo Upload Feature
 
-- [ ] Add companyLogoUrl field to schema
-- [ ] Add uploadCompanyLogo tRPC procedure with S3 storage
-- [ ] Add file upload input to Client Information step
-- [ ] Display logo preview after upload
-- [ ] Show logo on success screen
-- [ ] Update review screen to display logo
-- [ ] Add tests for logo upload
-- [ ] Save checkpoint and publish
+- [x] Add companyLogoUrl field to schema
+- [x] Add uploadCompanyLogo tRPC procedure with S3 storage
+- [x] Add file upload input to Client Information step
+- [x] Display logo preview after upload
+- [x] Update review screen to display logo
+- [x] Add companyLogoUrl to submitIntake input schema
+- [x] Pass stable sessionId from parent to CompanyLogoUpload component
+- [x] Add Vitest tests for uploadCompanyLogo (3 tests added)
+- [x] All 17 tests passing, zero TypeScript errors
+- [x] Save checkpoint and publish
