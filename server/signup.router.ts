@@ -12,7 +12,7 @@ import { TRPCError } from "@trpc/server";
 import { invokeLLM } from "./_core/llm";
 import { notifyOwner } from "./_core/notification";
 import { buildSystemPrompt } from "./_core/claudeQuestionnaire";
-import { logToGoogleSheets } from "./_core/googleSheets";
+// Google Sheets sync moved to scheduled task (see scheduled-sync.mjs)
 import { upsertGHLContact, createGHLOpportunity } from "./_core/gohighlevel";
 import { eq } from "drizzle-orm";
 import { getDb } from "./db";
@@ -187,16 +187,7 @@ Extract the value for "${fieldLabel}".`,
         }
       }
 
-      // 2. Log partial data to Google Sheets with upsert action (fire-and-forget, non-blocking)
-      // The Apps Script endpoint will find the row by sessionId and update it in-place,
-      // or append a new row if this is the first save for this session.
-      logToGoogleSheets({
-        action: "upsert",
-        sessionId,
-        status: "In Progress",
-        ...data,
-        submittedAt: new Date().toISOString(),
-      }).catch((err) => console.error("[SaveProgress] Sheets log failed:", err));
+      // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
 
       return { saved: true };
     }),
@@ -332,38 +323,7 @@ Extract the value for "${fieldLabel}".`,
         }
       }
 
-      // 2. Log to Google Sheets
-      try {
-        await logToGoogleSheets({
-          status: "Completed",
-          companyName: input.companyName,
-          ein: input.ein,
-          businessEntity: input.businessEntity,
-          ownerFirstName: input.ownerFirstName,
-          ownerLastName: input.ownerLastName,
-          ownerEmail: input.ownerEmail,
-          ownerPhone: input.ownerPhone,
-          ownerTitle: input.ownerTitle,
-          contactFirstName: input.contactFirstName,
-          contactLastName: input.contactLastName,
-          contactEmail: input.contactEmail,
-          contactPhone: input.contactPhone,
-          contactTitle: input.contactTitle,
-          businessStreet: input.businessStreet,
-          businessCity: input.businessCity,
-          businessState: input.businessState,
-          businessZip: input.businessZip,
-          billingSameAsBusiness: input.billingSameAsBusiness,
-          billingStreet: input.billingStreet,
-          billingCity: input.billingCity,
-          billingState: input.billingState,
-          billingZip: input.billingZip,
-          adminUsers: adminUsersJson,
-          submittedAt: new Date().toISOString(),
-        });
-      } catch (err) {
-        console.error("[Intake] Google Sheets log failed:", err);
-      }
+      // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
 
       // 3. GoHighLevel CRM
       try {

@@ -36,3 +36,12 @@
 - [x] Add admin server-side procedure to list all intakes
 - [x] Run tests and save checkpoint (15 tests, all passing)
 - [x] Guide user to publish
+
+
+## Scheduled Google Sheets Sync (Hourly)
+- [x] Remove real-time logToGoogleSheets calls from form submission procedures
+- [x] Add synced and syncedAt columns to signupIntakes table schema
+- [x] Create scheduled-sync.mjs task that queries MySQL for unsynced Completed submissions
+- [x] Scheduled task posts each submission to Google Sheets via Apps Script
+- [x] Scheduled task marks submissions as synced in database after successful post
+- [x] Update vitest tests to reflect new sync approach (14 tests passing, 0 failures)

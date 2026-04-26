@@ -141,20 +141,7 @@ describe("signup.submitIntake", () => {
     );
   });
 
-  it("calls logToGoogleSheets with Completed status", async () => {
-    const { logToGoogleSheets } = await import("./_core/googleSheets");
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await caller.signup.submitIntake(validIntakePayload);
-
-    expect(logToGoogleSheets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "Completed",
-        companyName: "Acme Corp",
-      })
-    );
-  });
+  // Google Sheets sync moved to scheduled task — no longer called during submitIntake
 
   it("calls upsertGHLContact with owner details", async () => {
     const { upsertGHLContact } = await import("./_core/gohighlevel");
@@ -216,43 +203,6 @@ describe("signup.saveProgress", () => {
     });
 
     expect(result).toEqual({ saved: true });
-  });
-
-  it("calls logToGoogleSheets with In Progress status and upsert action", async () => {
-    const { logToGoogleSheets } = await import("./_core/googleSheets");
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await caller.signup.saveProgress({
-      sessionId: "test-session-xyz789",
-      data: { companyName: "Partial Corp" },
-    });
-
-    expect(logToGoogleSheets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        status: "In Progress",
-        action: "upsert",
-        sessionId: "test-session-xyz789",
-      })
-    );
-  });
-
-  it("passes companyName as-is (no prefix) in the Sheets upsert payload", async () => {
-    const { logToGoogleSheets } = await import("./_core/googleSheets");
-    const ctx = createPublicContext();
-    const caller = appRouter.createCaller(ctx);
-
-    await caller.signup.saveProgress({
-      sessionId: "abcdef123456",
-      data: { companyName: "Acme" },
-    });
-
-    expect(logToGoogleSheets).toHaveBeenCalledWith(
-      expect.objectContaining({
-        companyName: "Acme",
-        sessionId: "abcdef123456",
-      })
-    );
   });
 });
 

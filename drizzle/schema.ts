@@ -62,6 +62,10 @@ export const signupIntakes = mysqlTable("signupIntakes", {
   // Raw conversation transcript (JSON)
   conversationLog: text("conversationLog"),
 
+  // Google Sheets sync tracking
+  synced: mysqlEnum("synced", ["true", "false"]).default("false").notNull(),
+  syncedAt: timestamp("syncedAt"),
+
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
