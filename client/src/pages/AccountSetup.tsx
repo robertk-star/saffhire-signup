@@ -636,14 +636,12 @@ export default function AccountSetup() {
       {/* Header */}
       <header className="shrink-0 border-b border-border bg-card/80 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">S</span>
-            </div>
-            <div>
-              <p className="font-semibold text-sm text-foreground leading-none">SaffHire</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Account Setup</p>
-            </div>
+          <div className="flex items-center">
+            <img
+              src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
+              alt="SaffHire Background Screening"
+              className="h-10 w-auto object-contain"
+            />
           </div>
           {stage === "chat" && hasStarted && (
             <div className="w-48 sm:w-64">
