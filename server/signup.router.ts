@@ -111,11 +111,17 @@ Please continue the conversation naturally based on what's been collected and wh
       });
 
       try {
-        const rawVal = response?.choices?.[0]?.message?.content;
-        const raw = typeof rawVal === "string" ? rawVal : "{}";
+        let rawVal = response?.choices?.[0]?.message?.content;
+        let raw = typeof rawVal === "string" ? rawVal : "{}";
+        
+        // Strip markdown code blocks if present
+        raw = raw.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?```$/, '').trim();
+        
+
         const parsed = JSON.parse(raw) as Record<string, string | null>;
         return { data: parsed };
-      } catch {
+      } catch (err) {
+        console.error('[extractAllFields] Parse error:', err);
         return { data: {} };
       }
     }),

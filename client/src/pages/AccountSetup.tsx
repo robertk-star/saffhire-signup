@@ -502,7 +502,8 @@ export default function AccountSetup() {
           }),
         }).then((r) => r.json());
         
-        const extractData = extractRes[0]?.result?.data?.json?.data || {};
+        // tRPC returns an array with one element containing the result
+        const extractData = extractRes?.[0]?.result?.data?.json?.data || {};
         
         // Merge extracted values, skipping nulls and empty strings
         for (const [key, value] of Object.entries(extractData)) {
