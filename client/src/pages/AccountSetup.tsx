@@ -754,15 +754,24 @@ export default function AccountSetup() {
             <div className="shrink-0 border-t border-border bg-card/80 backdrop-blur-sm">
               <div className="max-w-2xl mx-auto px-4 py-4">
                 <div className="flex gap-2 items-end">
-                  <Input
-                    ref={inputRef}
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="Type your response…"
-                    disabled={isTyping}
-                    className="flex-1 rounded-xl border-border bg-background focus-visible:ring-primary text-sm py-3 px-4 h-auto"
-                  />
+                  <div className="flex-1 relative">
+                    <Input
+                      ref={inputRef}
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      placeholder="Type your response…"
+                      disabled={isTyping}
+                      className="w-full rounded-xl border-border bg-background focus-visible:ring-primary text-sm py-3 px-4 h-auto"
+                    />
+                    {isTyping && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                    )}
+                  </div>
                   <Button
                     onClick={handleSend}
                     disabled={!inputValue.trim() || isTyping}
