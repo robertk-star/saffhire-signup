@@ -14,7 +14,9 @@
  *  - action: "append"  -> always append a new row (used for final completed submissions).
  */
 
-const APPS_SCRIPT_URL = process.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
+import { ENV } from "./env";
+
+const APPS_SCRIPT_URL = ENV.googleAppsScriptUrl;
 
 export type SheetsPayload = {
   status: string;
