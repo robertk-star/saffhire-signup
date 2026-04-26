@@ -2,6 +2,7 @@
  * tRPC router for the SaffHire account setup intake form.
  * Procedures:
  *  - signup.getNextMessage   — Claude generates the next conversational message
+ *  - signup.saveProgress     — Upserts partial data to DB + Sheets in real time (fire-and-forget)
  *  - signup.submitIntake     — Saves completed intake to DB, logs to Sheets, updates GHL, notifies owner
  */
 
@@ -12,6 +13,7 @@ import { notifyOwner } from "./_core/notification";
 import { buildSystemPrompt } from "./_core/claudeQuestionnaire";
 import { logToGoogleSheets } from "./_core/googleSheets";
 import { upsertGHLContact, createGHLOpportunity } from "./_core/gohighlevel";
+import { eq } from "drizzle-orm";
 import { getDb } from "./db";
 import { signupIntakes } from "../drizzle/schema";
 
@@ -119,6 +121,83 @@ Extract the value for "${fieldLabel}".`,
       } catch {
         return { value: null };
       }
+    }),
+
+  // ─── Save Progress (real-time partial upsert) ────────────────────────────────
+
+  saveProgress: publicProcedure
+    .input(
+      z.object({
+        sessionId: z.string().min(1),
+        data: z.object({
+          companyName: z.string().optional(),
+          ein: z.string().optional(),
+          businessEntity: z.string().optional(),
+          ownerFirstName: z.string().optional(),
+          ownerLastName: z.string().optional(),
+          ownerEmail: z.string().optional(),
+          ownerPhone: z.string().optional(),
+          ownerTitle: z.string().optional(),
+          contactFirstName: z.string().optional(),
+          contactLastName: z.string().optional(),
+          contactEmail: z.string().optional(),
+          contactPhone: z.string().optional(),
+          contactTitle: z.string().optional(),
+          businessStreet: z.string().optional(),
+          businessCity: z.string().optional(),
+          businessState: z.string().optional(),
+          businessZip: z.string().optional(),
+          billingSameAsBusiness: z.string().optional(),
+          billingStreet: z.string().optional(),
+          billingCity: z.string().optional(),
+          billingState: z.string().optional(),
+          billingZip: z.string().optional(),
+        }),
+        currentSection: z.number().min(0).optional(),
+      })
+    )
+    .mutation(async ({ input }) => {
+      const { sessionId, data, currentSection = 0 } = input;
+
+      // 1. Upsert to database
+      const db = await getDb();
+      if (db) {
+        try {
+          const existing = await db
+            .select({ id: signupIntakes.id })
+            .from(signupIntakes)
+            .where(eq(signupIntakes.sessionId, sessionId))
+            .limit(1);
+
+          if (existing.length > 0) {
+            await db
+              .update(signupIntakes)
+              .set({ ...data, status: "In Progress" })
+              .where(eq(signupIntakes.sessionId, sessionId));
+          } else {
+            await db.insert(signupIntakes).values({
+              sessionId,
+              status: "In Progress",
+              ...data,
+            });
+          }
+        } catch (err) {
+          console.error("[SaveProgress] DB upsert failed:", err);
+        }
+      }
+
+      // 2. Log partial data to Google Sheets with upsert action (fire-and-forget, non-blocking)
+      // The Apps Script endpoint will find the row by sessionId and update it in-place,
+      // or append a new row if this is the first save for this session.
+      logToGoogleSheets({
+        action: "upsert",
+        sessionId,
+        status: "In Progress",
+        ...data,
+        submittedAt: new Date().toISOString(),
+      }).catch((err) => console.error("[SaveProgress] Sheets log failed:", err));
+
+      return { saved: true };
     }),
 
   // ─── Submit Intake ──────────────────────────────────────────────────────────

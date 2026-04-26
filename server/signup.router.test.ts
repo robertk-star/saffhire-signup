@@ -28,8 +28,21 @@ vi.mock("./_core/gohighlevel", () => ({
 
 vi.mock("./db", () => ({
   getDb: vi.fn().mockResolvedValue({
+    // select().from().where().limit() chain for saveProgress upsert check
+    select: vi.fn().mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockResolvedValue([]), // empty = no existing row → insert path
+        }),
+      }),
+    }),
     insert: vi.fn().mockReturnValue({
       values: vi.fn().mockResolvedValue(undefined),
+    }),
+    update: vi.fn().mockReturnValue({
+      set: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue(undefined),
+      }),
     }),
   }),
 }));
@@ -156,6 +169,65 @@ describe("signup.submitIntake", () => {
         companyName: "", // empty required field
       })
     ).rejects.toThrow();
+  });
+});
+
+describe("signup.saveProgress", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("returns { saved: true } for a valid partial payload", async () => {
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.signup.saveProgress({
+      sessionId: "test-session-abc123",
+      data: {
+        companyName: "Partial Corp",
+        ownerEmail: "owner@partial.com",
+      },
+      currentSection: 0,
+    });
+
+    expect(result).toEqual({ saved: true });
+  });
+
+  it("calls logToGoogleSheets with In Progress status and upsert action", async () => {
+    const { logToGoogleSheets } = await import("./_core/googleSheets");
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.signup.saveProgress({
+      sessionId: "test-session-xyz789",
+      data: { companyName: "Partial Corp" },
+    });
+
+    expect(logToGoogleSheets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "In Progress",
+        action: "upsert",
+        sessionId: "test-session-xyz789",
+      })
+    );
+  });
+
+  it("passes companyName as-is (no prefix) in the Sheets upsert payload", async () => {
+    const { logToGoogleSheets } = await import("./_core/googleSheets");
+    const ctx = createPublicContext();
+    const caller = appRouter.createCaller(ctx);
+
+    await caller.signup.saveProgress({
+      sessionId: "abcdef123456",
+      data: { companyName: "Acme" },
+    });
+
+    expect(logToGoogleSheets).toHaveBeenCalledWith(
+      expect.objectContaining({
+        companyName: "Acme",
+        sessionId: "abcdef123456",
+      })
+    );
   });
 });
 

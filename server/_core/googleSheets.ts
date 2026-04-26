@@ -1,13 +1,21 @@
 /**
  * Google Sheets integration via Google Apps Script Web App.
- * Posts intake data to the Apps Script endpoint which appends a row to the sheet
- * and sends a notification email to the owner.
+ *
+ * The Apps Script endpoint supports two operations:
+ *  - action: "upsert"  → find an existing row by sessionId and update it in-place,
+ *                         or append a new row if no match is found.
+ *  - action: "append"  → always append a new row (used for final completed submissions).
+ *
+ * This prevents duplicate partial rows when saveProgress is called multiple times
+ * for the same browser session.
  */
 
 const APPS_SCRIPT_URL = process.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
 
 export type SheetsPayload = {
   status: string;
+  sessionId?: string;
+  action?: "upsert" | "append"; // default: "append"
   companyName?: string;
   ein?: string;
   businessEntity?: string;
@@ -41,7 +49,6 @@ export async function logToGoogleSheets(payload: SheetsPayload): Promise<void> {
   }
 
   try {
-    // Apps Script requires no-cors from browser; from server we can do a normal fetch
     const response = await fetch(APPS_SCRIPT_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -51,7 +58,7 @@ export async function logToGoogleSheets(payload: SheetsPayload): Promise<void> {
     if (!response.ok) {
       console.warn(`[GoogleSheets] Non-OK response: ${response.status}`);
     } else {
-      console.log("[GoogleSheets] Row logged successfully.");
+      console.log(`[GoogleSheets] Row ${payload.action === "upsert" ? "upserted" : "appended"} successfully.`);
     }
   } catch (err) {
     // Non-fatal — log but don't throw

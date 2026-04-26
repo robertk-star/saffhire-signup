@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -330,11 +330,17 @@ export default function AccountSetup() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
 
+  // Stable session ID — generated once per page load, used to deduplicate partial saves
+  const sessionId = useMemo(() => uid() + uid(), []);
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Debounce timer for saveProgress to avoid hammering the server
+  const saveProgressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getNextMessage = trpc.signup.getNextMessage.useMutation();
   const submitIntake = trpc.signup.submitIntake.useMutation();
+  const saveProgress = trpc.signup.saveProgress.useMutation();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -508,8 +514,13 @@ export default function AccountSetup() {
         })
       );
 
+      // Merge updates into intake data
+      const mergedData = Object.keys(updates).length > 0
+        ? { ...intakeData, ...updates }
+        : intakeData;
+
       if (Object.keys(updates).length > 0) {
-        setIntakeData((prev) => ({ ...prev, ...updates }));
+        setIntakeData(mergedData);
 
         // Build admin users from extracted fields
         const adminUpdates: AdminUser[] = [];
@@ -526,8 +537,38 @@ export default function AccountSetup() {
           setAdminUsers(adminUpdates);
         }
       }
+
+      // ── Real-time partial save ─────────────────────────────────────────────
+      // Debounce: wait 1.5 s after the last extraction before posting to server
+      if (saveProgressTimer.current) clearTimeout(saveProgressTimer.current);
+      saveProgressTimer.current = setTimeout(() => {
+        // Only save if we have at least a company name or owner email to identify the lead
+        const d = mergedData as Record<string, string | undefined>;
+        const hasIdentifier = !!(d.companyName || d.ownerEmail || d.ownerFirstName);
+        if (!hasIdentifier) return;
+
+        // Strip out admin sub-fields (admin1FirstName etc.) — those aren't in the server schema
+        const partialPayload: Record<string, string> = {};
+        const serverFields = [
+          "companyName", "ein", "businessEntity",
+          "ownerFirstName", "ownerLastName", "ownerEmail", "ownerPhone", "ownerTitle",
+          "contactFirstName", "contactLastName", "contactEmail", "contactPhone", "contactTitle",
+          "businessStreet", "businessCity", "businessState", "businessZip",
+          "billingSameAsBusiness", "billingStreet", "billingCity", "billingState", "billingZip",
+        ];
+        for (const f of serverFields) {
+          if (d[f]) partialPayload[f] = d[f] as string;
+        }
+
+        saveProgress.mutate(
+          { sessionId, data: partialPayload, currentSection },
+          {
+            onError: (err) => console.warn("[SaveProgress] failed:", err),
+          }
+        );
+      }, 1500);
     },
-    [messages, currentSection, intakeData, getNextMessage]
+    [messages, currentSection, intakeData, getNextMessage, saveProgress, sessionId]
   );
 
   const handleSend = async () => {

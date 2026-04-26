@@ -15,6 +15,13 @@
       "when": 1777203698653,
       "tag": "0001_white_hawkeye",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1777206293649,
+      "tag": "0002_lowly_jigsaw",
+      "breakpoints": true
     }
   ]
 }

@@ -20,6 +20,9 @@ export type InsertUser = typeof users.$inferInsert;
 export const signupIntakes = mysqlTable("signupIntakes", {
   id: int("id").autoincrement().primaryKey(),
 
+  // Stable browser session ID — used to upsert partial rows without duplicates
+  sessionId: varchar("sessionId", { length: 64 }).unique(),
+
   // Status
   status: mysqlEnum("status", ["In Progress", "Completed"]).default("In Progress").notNull(),
 
