@@ -56,3 +56,30 @@
 - [x] Add "Sync Now" button in admin header for manual on-demand sync
 - [x] Wire up handleManualSync mutation with loading state
 - [x] All 14 tests passing, zero TypeScript errors
+
+
+## Form Redesign - Static Multi-Step Form (from ClientCredentialing PDF)
+
+- [x] Remove Claude questionnaire logic and replace with static form structure
+- [x] Build multi-step form matching PDF: Client Info → Contact Info → Business Address → Billing Address → Admin Users → Signature
+- [x] Add form validation with inline error messages (email, phone, required fields)
+- [x] Add progress indicator showing current step
+- [x] Build review screen showing all collected data
+- [x] Wire up form submission to database, Google Sheets, GoHighLevel, and owner notification
+- [x] Update tests for new form structure (14 tests passing)
+- [x] Publish and test end-to-end
+
+
+## Dynamic Admin Users Flow
+
+- [x] Update Admin Users step to start with Primary Admin questions only
+- [x] After Primary Admin, ask "Add another user?" with Yes/No
+- [x] If Yes, ask access level (Admin vs General Access)
+- [x] Show User 2 questions based on access level
+- [x] After User 2, ask "Add a third user?" with Yes/No
+- [x] If Yes, ask access level for User 3
+- [x] Show User 3 questions
+- [x] Update form data structure to track access levels
+- [x] Update review screen to show all users with their access levels
+- [x] Test end-to-end flow with 1, 2, and 3 users (14 tests passing)
+- [x] Save checkpoint and publish

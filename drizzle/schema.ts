@@ -28,12 +28,15 @@ export const signupIntakes = mysqlTable("signupIntakes", {
 
   // Section 1 – Client Information
   companyName: varchar("companyName", { length: 255 }),
+  dba: varchar("dba", { length: 255 }),
   ein: varchar("ein", { length: 64 }),
+  businessType: varchar("businessType", { length: 128 }),
   businessEntity: varchar("businessEntity", { length: 128 }),
   ownerFirstName: varchar("ownerFirstName", { length: 128 }),
   ownerLastName: varchar("ownerLastName", { length: 128 }),
   ownerEmail: varchar("ownerEmail", { length: 320 }),
   ownerPhone: varchar("ownerPhone", { length: 64 }),
+  ownerPhoneExt: varchar("ownerPhoneExt", { length: 32 }),
   ownerTitle: varchar("ownerTitle", { length: 128 }),
 
   // Section 2 – Contact Information (optional)
@@ -41,23 +44,36 @@ export const signupIntakes = mysqlTable("signupIntakes", {
   contactLastName: varchar("contactLastName", { length: 128 }),
   contactEmail: varchar("contactEmail", { length: 320 }),
   contactPhone: varchar("contactPhone", { length: 64 }),
+  contactPhoneExt: varchar("contactPhoneExt", { length: 32 }),
+  contactMobilePhone: varchar("contactMobilePhone", { length: 64 }),
   contactTitle: varchar("contactTitle", { length: 128 }),
 
   // Section 3 – Business Address
   businessStreet: varchar("businessStreet", { length: 255 }),
+  businessStreet2: varchar("businessStreet2", { length: 255 }),
   businessCity: varchar("businessCity", { length: 128 }),
   businessState: varchar("businessState", { length: 64 }),
   businessZip: varchar("businessZip", { length: 20 }),
+  businessCountry: varchar("businessCountry", { length: 128 }),
 
   // Section 4 – Billing Address
   billingSameAsBusiness: varchar("billingSameAsBusiness", { length: 8 }),
   billingStreet: varchar("billingStreet", { length: 255 }),
+  billingStreet2: varchar("billingStreet2", { length: 255 }),
   billingCity: varchar("billingCity", { length: 128 }),
   billingState: varchar("billingState", { length: 64 }),
   billingZip: varchar("billingZip", { length: 20 }),
+  billingCountry: varchar("billingCountry", { length: 128 }),
+  billingAttention: varchar("billingAttention", { length: 255 }),
 
   // Section 5 – Admin Users (up to 3, stored as JSON)
-  adminUsers: text("adminUsers"), // JSON array of { firstName, lastName, email, phone }
+  adminUsers: text("adminUsers"), // JSON array of { firstName, lastName, jobTitle, email, phone }
+
+  // Section 6 – Signature
+  authorizedSignature: varchar("authorizedSignature", { length: 255 }),
+  signatureDate: varchar("signatureDate", { length: 32 }),
+  signatureName: varchar("signatureName", { length: 255 }),
+  signatureTitle: varchar("signatureTitle", { length: 255 }),
 
   // Raw conversation transcript (JSON)
   conversationLog: text("conversationLog"),
