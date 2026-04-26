@@ -342,7 +342,7 @@ export default function AccountSetup() {
         {showReview ? (
           <ReviewScreen formData={formData} />
         ) : (
-          <FormStep step={currentStep} formData={formData} errors={errors} onChange={handleInputChange} />
+          <FormStep step={currentStep} formData={formData} errors={errors} onChange={handleInputChange} sessionId={sessionId} />
         )}
 
         {/* Navigation Buttons */}
@@ -368,11 +368,10 @@ interface FormStepProps {
   formData: FormData;
   errors: Record<string, string>;
   onChange: (field: keyof FormData, value: string | boolean) => void;
+  sessionId: string;
 }
 
-function FormStep({ step, formData, errors, onChange }: FormStepProps) {
-  // Create a stable sessionId using nanoid if not already created
-  const [sessionId] = useState(() => nanoid());
+function FormStep({ step, formData, errors, onChange, sessionId }: FormStepProps) {
   if (step === 0) {
     return (
       <div className="space-y-6">
