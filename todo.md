@@ -45,3 +45,14 @@
 - [x] Scheduled task posts each submission to Google Sheets via Apps Script
 - [x] Scheduled task marks submissions as synced in database after successful post
 - [x] Update vitest tests to reflect new sync approach (14 tests passing, 0 failures)
+
+
+## Hourly Scheduled Sync + Admin Dashboard Enhancements
+
+- [x] Create 6-hourly scheduled task (saffhire-sheets-sync) via schedule tool
+- [x] Add manualSyncToSheets admin-only tRPC procedure
+- [x] Add synced and syncedAt columns to IntakeRow type in Admin.tsx
+- [x] Add "Sheets Sync" column to admin dashboard table showing Synced/Pending status
+- [x] Add "Sync Now" button in admin header for manual on-demand sync
+- [x] Wire up handleManualSync mutation with loading state
+- [x] All 14 tests passing, zero TypeScript errors

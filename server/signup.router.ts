@@ -361,4 +361,111 @@ Extract the value for "${fieldLabel}".`,
 
       return { success: true };
     }),
+
+  // Manual Sync to Google Sheets (admin only)
+  manualSyncToSheets: protectedProcedure
+    .use(({ ctx, next }) => {
+      if (ctx.user.role !== "admin") throw new TRPCError({ code: "FORBIDDEN" });
+      return next({ ctx });
+    })
+    .mutation(async () => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      try {
+        const { eq: eqOp } = await import("drizzle-orm");
+        const APPS_SCRIPT_URL = process.env.VITE_GOOGLE_APPS_SCRIPT_URL;
+
+        if (!APPS_SCRIPT_URL) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Apps Script URL not configured" });
+        }
+
+        // Query unsynced completed submissions
+        const unsynced = await db
+          .select()
+          .from(signupIntakes)
+          .where(eqOp(signupIntakes.synced, "false"))
+          .limit(100);
+
+        if (unsynced.length === 0) {
+          return { synced: 0, message: "No unsynced submissions found" };
+        }
+
+        let syncedCount = 0;
+
+        for (const row of unsynced) {
+          try {
+            const payload = {
+              action: "append",
+              status: row.status,
+              sessionId: row.sessionId,
+              companyName: row.companyName,
+              ein: row.ein,
+              businessEntity: row.businessEntity,
+              ownerFirstName: row.ownerFirstName,
+              ownerLastName: row.ownerLastName,
+              ownerEmail: row.ownerEmail,
+              ownerPhone: row.ownerPhone,
+              ownerTitle: row.ownerTitle,
+              contactFirstName: row.contactFirstName,
+              contactLastName: row.contactLastName,
+              contactEmail: row.contactEmail,
+              contactPhone: row.contactPhone,
+              contactTitle: row.contactTitle,
+              businessStreet: row.businessStreet,
+              businessCity: row.businessCity,
+              businessState: row.businessState,
+              businessZip: row.businessZip,
+              billingSameAsBusiness: row.billingSameAsBusiness,
+              billingStreet: row.billingStreet,
+              billingCity: row.billingCity,
+              billingState: row.billingState,
+              billingZip: row.billingZip,
+              adminUsers: row.adminUsers,
+              submittedAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
+            };
+
+            // POST with manual redirect handling
+            const postResponse = await fetch(APPS_SCRIPT_URL, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+              redirect: "manual",
+            });
+
+            let finalResponse;
+            if (postResponse.status === 302 || postResponse.status === 301) {
+              const redirectUrl = postResponse.headers.get("location");
+              if (redirectUrl) {
+                finalResponse = await fetch(redirectUrl, { method: "GET" });
+              } else {
+                throw new Error("Redirect without Location header");
+              }
+            } else {
+              finalResponse = postResponse;
+            }
+
+            if (!finalResponse.ok) {
+              throw new Error(`Apps Script returned ${finalResponse.status}`);
+            }
+
+            // Mark as synced
+            await db
+              .update(signupIntakes)
+              .set({ synced: "true", syncedAt: new Date() })
+              .where(eqOp(signupIntakes.id, row.id));
+
+            syncedCount++;
+          } catch (err) {
+            console.error(`[ManualSync] Failed to sync row ${row.id}:`, err);
+            // Continue with next row
+          }
+        }
+
+        return { synced: syncedCount, message: `Synced ${syncedCount} of ${unsynced.length} submissions` };
+      } catch (err) {
+        console.error("[ManualSync] Error:", err);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Sync failed" });
+      }
+    }),
 });

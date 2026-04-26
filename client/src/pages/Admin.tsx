@@ -28,6 +28,8 @@ type IntakeRow = {
   id: number;
   sessionId: string | null;
   status: "In Progress" | "Completed";
+  synced: "true" | "false";
+  syncedAt: Date | null;
   companyName: string | null;
   ownerFirstName: string | null;
   ownerLastName: string | null;
@@ -201,11 +203,27 @@ export default function Admin() {
   const [search, setSearch] = useState("");
   const [selectedIntake, setSelectedIntake] = useState<IntakeRow | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data, isLoading, refetch, isFetching } = trpc.signup.listIntakes.useQuery(
     { status: statusFilter, limit: 200, offset: 0 },
     { refetchInterval: 30_000 } // auto-refresh every 30 s
   );
+
+  const manualSync = trpc.signup.manualSyncToSheets.useMutation({
+    onSuccess: () => {
+      setIsSyncing(false);
+      refetch();
+    },
+    onError: () => {
+      setIsSyncing(false);
+    },
+  });
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    await manualSync.mutateAsync();
+  };
 
   // Gate: must be logged in as admin/owner
   if (loading) {
@@ -271,16 +289,28 @@ export default function Admin() {
             <div className="h-5 w-px bg-border" />
             <span className="text-sm font-semibold text-foreground">Submissions Dashboard</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => refetch()}
-            disabled={isFetching}
-            className="gap-2 text-muted-foreground"
-          >
-            <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => refetch()}
+              disabled={isFetching}
+              className="gap-2 text-muted-foreground"
+            >
+              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+              Sync Now
+            </Button>
+          </div>
         </div>
       </header>
 
@@ -373,6 +403,9 @@ export default function Admin() {
                         )}
                       </span>
                     </th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
+                      Sheets Sync
+                    </th>
                     <th className="px-4 py-3" />
                   </tr>
                 </thead>
@@ -423,6 +456,17 @@ export default function Admin() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground text-xs">
                         {formatDate(row.updatedAt)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.synced === "true" ? (
+                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                            Synced
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                            Pending
+                          </Badge>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         <Button
