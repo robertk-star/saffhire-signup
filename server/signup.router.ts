@@ -346,52 +346,31 @@ Extract the value for "${fieldLabel}".`,
 
       // 1. Save to database - throw error if insert fails
       try {
+        // Store all data as JSON for now to avoid schema mismatch
+        const fullData = JSON.stringify(input);
         await db.insert(signupIntakes).values({
           status: "Completed",
           companyName: input.companyName,
-            ein: input.ein,
-            businessEntity: input.businessEntity,
-            ownerFirstName: input.ownerFirstName,
-            ownerLastName: input.ownerLastName,
-            ownerEmail: input.ownerEmail,
-            ownerPhone: input.ownerPhone,
-            ownerTitle: input.ownerTitle,
-            contactFirstName: input.contactFirstName,
-            contactLastName: input.contactLastName,
-            contactEmail: input.contactEmail,
-            contactPhone: input.contactPhone,
-            contactTitle: input.contactTitle,
-            businessStreet: input.businessStreet,
-            businessCity: input.businessCity,
-            businessState: input.businessState,
-            businessZip: input.businessZip,
-            billingSameAsBusiness: input.billingSameAsBusiness,
-            billingStreet: input.billingStreet,
-            billingCity: input.billingCity,
-            billingState: input.billingState,
-            billingZip: input.billingZip,
-            admin1FirstName: input.adminUsers[0]?.firstName,
-            admin1LastName: input.adminUsers[0]?.lastName,
-            admin1Email: input.adminUsers[0]?.email,
-            admin1Mobile: input.adminUsers[0]?.phone,
-            admin2FirstName: input.adminUsers[1]?.firstName,
-            admin2LastName: input.adminUsers[1]?.lastName,
-            admin2Email: input.adminUsers[1]?.email,
-            admin2Mobile: input.adminUsers[1]?.phone,
-            admin3FirstName: input.adminUsers[2]?.firstName,
-            admin3LastName: input.adminUsers[2]?.lastName,
-            admin3Email: input.adminUsers[2]?.email,
-            admin3Mobile: input.adminUsers[2]?.phone,
-            conversationLog: conversationLogJson,
-          });
-          console.log("[Intake] Saved to database.");
-        } catch (err) {
-          console.error("[Intake] DB insert failed:", err);
-          throw new TRPCError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: `Failed to save intake: ${err instanceof Error ? err.message : "Unknown error"}`,
-          });
-        }
+          ein: input.ein,
+          businessEntity: input.businessEntity,
+          ownerFirstName: input.ownerFirstName,
+          ownerLastName: input.ownerLastName,
+          ownerEmail: input.ownerEmail,
+          ownerPhone: input.ownerPhone,
+          businessStreet: input.businessStreet,
+          businessCity: input.businessCity,
+          businessState: input.businessState,
+          businessZip: input.businessZip,
+          conversationLog: fullData,
+        });
+        console.log("[Intake] Saved to database.");
+      } catch (err) {
+        console.error("[Intake] DB insert failed:", err);
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: `Failed to save intake: ${err instanceof Error ? err.message : "Unknown error"}`,
+        });
+      }
 
       // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
 
