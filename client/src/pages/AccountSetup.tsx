@@ -239,6 +239,7 @@ export default function AccountSetup() {
 
   const handleSubmit = async () => {
     submitIntake.mutate({
+      sessionId,
       companyName: formData.companyName,
 
       ein: formData.ein,

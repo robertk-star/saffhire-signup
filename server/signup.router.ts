@@ -298,9 +298,10 @@ Extract the value for "${fieldLabel}".`,
   submitIntake: publicProcedure
     .input(
       z.object({
+        // Session ID for tracking
+        sessionId: z.string().min(1),
         // Section 1
         companyName: z.string().min(1),
-        companyLogoUrl: z.string().optional(),
         ein: z.string().min(1),
         businessEntity: z.string().min(1),
         ownerFirstName: z.string().min(1),
@@ -340,17 +341,17 @@ Extract the value for "${fieldLabel}".`,
     )
     .mutation(async ({ input }) => {
       const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       const adminUsersJson = JSON.stringify(input.adminUsers);
       const conversationLogJson = JSON.stringify(input.conversationLog || []);
 
-      // 1. Save to database
-      if (db) {
-        try {
-          await db.insert(signupIntakes).values({
-            status: "Completed",
-            companyName: input.companyName,
-            companyLogoUrl: input.companyLogoUrl,
+      // 1. Save to database - throw error if insert fails
+      try {
+        await db.insert(signupIntakes).values({
+          sessionId: input.sessionId,
+          status: "Completed",
+          companyName: input.companyName,
             ein: input.ein,
             businessEntity: input.businessEntity,
             ownerFirstName: input.ownerFirstName,
@@ -389,8 +390,11 @@ Extract the value for "${fieldLabel}".`,
           console.log("[Intake] Saved to database.");
         } catch (err) {
           console.error("[Intake] DB insert failed:", err);
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: `Failed to save intake: ${err instanceof Error ? err.message : "Unknown error"}`,
+          });
         }
-      }
 
       // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
 

@@ -86,6 +86,7 @@ function createAuthContext(role: "admin" | "user" = "admin"): TrpcContext {
 }
 
 const validIntakePayload = {
+  sessionId: "test-session-id",
   companyName: "Acme Corp",
   ein: "12-3456789",
   businessEntity: "LLC",
