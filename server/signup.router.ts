@@ -346,21 +346,11 @@ Extract the value for "${fieldLabel}".`,
 
       // 1. Save to database - throw error if insert fails
       try {
-        // Store all data as JSON for now to avoid schema mismatch
+        // Store all data as JSON in conversationLog to avoid schema mismatch
+        // Only insert into columns we know exist in the database
         const fullData = JSON.stringify(input);
         await db.insert(signupIntakes).values({
           status: "Completed",
-          companyName: input.companyName,
-          ein: input.ein,
-          businessEntity: input.businessEntity,
-          ownerFirstName: input.ownerFirstName,
-          ownerLastName: input.ownerLastName,
-          ownerEmail: input.ownerEmail,
-          ownerPhone: input.ownerPhone,
-          businessStreet: input.businessStreet,
-          businessCity: input.businessCity,
-          businessState: input.businessState,
-          businessZip: input.businessZip,
           conversationLog: fullData,
         });
         console.log("[Intake] Saved to database.");
