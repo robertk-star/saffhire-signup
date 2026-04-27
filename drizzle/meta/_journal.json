@@ -36,6 +36,13 @@
       "when": 1777215958635,
       "tag": "0004_cute_karma",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1777302553885,
+      "tag": "0005_legal_bloodstrike",
+      "breakpoints": true
     }
   ]
 }
