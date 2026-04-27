@@ -15,7 +15,6 @@ const STEPS = [
   { id: 2, title: "Business Address", label: "Business Address" },
   { id: 3, title: "Billing Address", label: "Billing Address" },
   { id: 4, title: "Admin Users", label: "Admin Users" },
-  { id: 5, title: "Signature", label: "Signature" },
 ];
 
 interface FormData {
@@ -76,11 +75,7 @@ interface FormData {
   admin3Email: string;
   admin3Status: string;
 
-  // Signature
-  authorizedSignature: string;
-  signatureDate: string;
-  signatureName: string;
-  signatureTitle: string;
+
 }
 
 const initialFormData: FormData = {
@@ -130,10 +125,7 @@ const initialFormData: FormData = {
   admin3Mobile: "",
   admin3Email: "",
   admin3Status: "",
-  authorizedSignature: "",
-  signatureDate: "",
-  signatureName: "",
-  signatureTitle: "",
+
 };
 
 export default function AccountSetup() {
@@ -208,11 +200,6 @@ export default function AccountSetup() {
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.admin1Email))
         newErrors.admin1Email = "Invalid email format";
       if (!formData.admin1Mobile.trim()) newErrors.admin1Mobile = "Mobile number is required";
-    } else if (step === 5) {
-      // Signature validation
-      if (!formData.authorizedSignature.trim()) newErrors.authorizedSignature = "Signature is required";
-      if (!formData.signatureDate.trim()) newErrors.signatureDate = "Date is required";
-      if (!formData.signatureName.trim()) newErrors.signatureName = "Name is required";
     }
 
     setErrors(newErrors);
@@ -706,35 +693,7 @@ function FormStep({ step, formData, errors, onChange }: FormStepProps) {
     );
   }
 
-  if (step === 5) {
-    return (
-      <div className="space-y-6">
-        <FormField label="Authorized Signature *" error={errors.authorizedSignature}>
-          <Input
-            value={formData.authorizedSignature}
-            onChange={(e) => onChange("authorizedSignature", e.target.value)}
-            placeholder="Type your full name as signature"
-          />
-        </FormField>
 
-        <FormField label="Date *" error={errors.signatureDate}>
-          <Input
-            value={formData.signatureDate}
-            onChange={(e) => onChange("signatureDate", e.target.value)}
-            type="date"
-          />
-        </FormField>
-
-        <FormField label="Name *" error={errors.signatureName}>
-          <Input value={formData.signatureName} onChange={(e) => onChange("signatureName", e.target.value)} />
-        </FormField>
-
-        <FormField label="Title *" error={errors.signatureTitle}>
-          <Input value={formData.signatureTitle} onChange={(e) => onChange("signatureTitle", e.target.value)} />
-        </FormField>
-      </div>
-    );
-  }
 
   return null;
 }
