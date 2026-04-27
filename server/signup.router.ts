@@ -7,6 +7,7 @@ import { signupIntakes } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
 
 import { storagePut } from "./storage";
+import { upsertContactWithIntakeTag } from "./ghl";
 
 const APPS_SCRIPT_URL = process.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
 
@@ -70,7 +71,23 @@ export const signupRouter = router({
 
       // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
 
-      // 3. Notify owner
+      // 3. Create or update contact in GoHighLevel with Intake tag
+      try {
+        const contactId = await upsertContactWithIntakeTag({
+          firstName: input.ownerFirstName,
+          lastName: input.ownerLastName,
+          email: input.ownerEmail,
+          phone: input.ownerPhone,
+          companyName: input.companyName,
+        });
+        if (contactId) {
+          console.log(`[Intake] GHL contact created/updated: ${contactId}`);
+        }
+      } catch (err) {
+        console.error("[Intake] GHL sync failed:", err);
+      }
+
+      // 4. Notify owner
       try {
         await notifyOwner({
           title: `New Credentialing Application: ${input.companyName || "Unnamed"}`,
@@ -80,8 +97,6 @@ export const signupRouter = router({
       } catch (err) {
         console.error("[Intake] Owner notification failed:", err);
       }
-
-
 
       return { saved: true };
     }),
