@@ -1,56 +1,41 @@
 /**
  * GoHighLevel (GHL) Integration
  * Handles contact creation/updates and tagging for credentialing intakes
+ * Uses GHL API v2 (2021-07-28)
  */
 
-const GHL_API_BASE = "https://rest.gohighlevel.com/v1";
+const GHL_API_BASE = "https://services.leadconnectorhq.com";
 const GHL_API_KEY = process.env.GOHIGHLEVEL_API_KEY_TEMP || "";
 const GHL_LOCATION_ID = process.env.GOHIGHLEVEL_LOCATION_ID || "";
 const INTAKE_TAG_NAME = "Intake";
+const API_VERSION = "2021-07-28";
+const REQUEST_TIMEOUT = 5000; // 5 seconds
 
 /**
- * Search for an existing contact by email
+ * Helper to make fetch requests with timeout
  */
-async function searchContactByEmail(email: string): Promise<string | null> {
-  if (!email || !GHL_API_KEY || !GHL_LOCATION_ID) {
-    console.warn("[GHL] Missing credentials for contact search");
-    return null;
-  }
-
+async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = REQUEST_TIMEOUT) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  
   try {
-    const response = await fetch(
-      `${GHL_API_BASE}/contacts/search?locationId=${GHL_LOCATION_ID}&email=${encodeURIComponent(email)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${GHL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (!response.ok) {
-      console.error(`[GHL] Search failed: ${response.status}`);
-      return null;
-    }
-
-    const data = await response.json();
-    // GHL returns contacts array; return first match ID
-    if (data.contacts && data.contacts.length > 0) {
-      return data.contacts[0].id;
-    }
-
-    return null;
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
   } catch (err) {
-    console.error("[GHL] Contact search error:", err);
-    return null;
+    clearTimeout(timeoutId);
+    throw err;
   }
 }
 
 /**
- * Create a new contact in GHL
+ * Create or update a contact in GHL
+ * GHL will automatically detect duplicates and update if exists
  */
-async function createContact(input: {
+async function createOrUpdateContact(input: {
   firstName?: string;
   lastName?: string;
   email?: string;
@@ -72,121 +57,105 @@ async function createContact(input: {
       locationId: GHL_LOCATION_ID,
     };
 
-    const response = await fetch(`${GHL_API_BASE}/contacts/`, {
+    const response = await fetchWithTimeout(`${GHL_API_BASE}/contacts/`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${GHL_API_KEY}`,
         "Content-Type": "application/json",
+        Version: API_VERSION,
       },
       body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`[GHL] Create contact failed: ${response.status} - ${errorText}`);
+      console.error(`[GHL] Create/update contact failed: ${response.status} - ${errorText}`);
       return null;
     }
 
     const data = await response.json();
-    return data.id || null;
+    const contactId = data.contact?.id || data.id;
+    
+    if (contactId) {
+      console.log(`[GHL] Contact created/updated: ${contactId}`);
+      return contactId;
+    }
+    
+    return null;
   } catch (err) {
-    console.error("[GHL] Contact creation error:", err);
+    console.error("[GHL] Contact creation/update error:", err);
     return null;
   }
 }
 
 /**
- * Get or create tag by name, returns tag ID
+ * Get a contact by ID to retrieve current tags
  */
-async function getOrCreateTag(tagName: string): Promise<string | null> {
-  if (!GHL_API_KEY || !GHL_LOCATION_ID) {
-    console.warn("[GHL] Missing credentials for tag operations");
+async function getContact(contactId: string): Promise<any> {
+  if (!GHL_API_KEY) {
+    console.warn("[GHL] Missing credentials for get contact");
     return null;
   }
 
   try {
-    // First, try to find existing tag
-    const searchResponse = await fetch(
-      `${GHL_API_BASE}/tags?locationId=${GHL_LOCATION_ID}&name=${encodeURIComponent(tagName)}`,
-      {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${GHL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (searchResponse.ok) {
-      const data = await searchResponse.json();
-      if (data.tags && data.tags.length > 0) {
-        return data.tags[0].id;
-      }
-    }
-
-    // Tag doesn't exist, create it
-    const createResponse = await fetch(`${GHL_API_BASE}/tags?locationId=${GHL_LOCATION_ID}`, {
-      method: "POST",
+    const response = await fetchWithTimeout(`${GHL_API_BASE}/contacts/${contactId}`, {
+      method: "GET",
       headers: {
         Authorization: `Bearer ${GHL_API_KEY}`,
         "Content-Type": "application/json",
+        Version: API_VERSION,
       },
-      body: JSON.stringify({
-        name: tagName,
-      }),
     });
 
-    if (!createResponse.ok) {
-      console.error(`[GHL] Create tag failed: ${createResponse.status}`);
+    if (!response.ok) {
+      console.error(`[GHL] Get contact failed: ${response.status}`);
       return null;
     }
 
-    const data = await createResponse.json();
-    return data.id || null;
+    const data = await response.json();
+    return data.contact || data;
   } catch (err) {
-    console.error("[GHL] Tag operation error:", err);
+    console.error("[GHL] Get contact error:", err);
     return null;
   }
 }
 
 /**
- * Add tag to a contact
+ * Update a contact with new tags
  */
-async function addTagToContact(contactId: string, tagId: string): Promise<boolean> {
-  if (!GHL_API_KEY || !GHL_LOCATION_ID) {
-    console.warn("[GHL] Missing credentials for tag assignment");
+async function updateContactTags(contactId: string, tags: string[]): Promise<boolean> {
+  if (!GHL_API_KEY) {
+    console.warn("[GHL] Missing credentials for update contact");
     return false;
   }
 
   try {
-    const response = await fetch(
-      `${GHL_API_BASE}/contacts/${contactId}/tags?locationId=${GHL_LOCATION_ID}`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${GHL_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          tagId,
-        }),
-      }
-    );
+    const response = await fetchWithTimeout(`${GHL_API_BASE}/contacts/${contactId}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${GHL_API_KEY}`,
+        "Content-Type": "application/json",
+        Version: API_VERSION,
+      },
+      body: JSON.stringify({ tags }),
+    });
 
     if (!response.ok) {
-      console.error(`[GHL] Add tag failed: ${response.status}`);
+      const errorText = await response.text();
+      console.error(`[GHL] Update tags failed: ${response.status} - ${errorText}`);
       return false;
     }
 
+    console.log(`[GHL] Updated contact ${contactId} with tags: ${tags.join(", ")}`);
     return true;
   } catch (err) {
-    console.error("[GHL] Add tag error:", err);
+    console.error("[GHL] Update tags error:", err);
     return false;
   }
 }
 
 /**
- * Upsert contact (create if doesn't exist, update if exists) and add Intake tag
+ * Create or update contact and add Intake tag
  * Returns contact ID if successful
  */
 export async function upsertContactWithIntakeTag(input: {
@@ -197,38 +166,35 @@ export async function upsertContactWithIntakeTag(input: {
   companyName?: string;
 }): Promise<string | null> {
   try {
-    let contactId: string | null = null;
-
-    // Try to find existing contact by email
-    if (input.email) {
-      contactId = await searchContactByEmail(input.email);
-    }
-
-    // If not found, create new contact
+    // Create or update the contact (GHL handles duplicates automatically)
+    const contactId = await createOrUpdateContact(input);
     if (!contactId) {
-      contactId = await createContact(input);
-      if (!contactId) {
-        console.warn("[GHL] Failed to create contact");
-        return null;
-      }
-      console.log(`[GHL] Created new contact: ${contactId}`);
-    } else {
-      console.log(`[GHL] Found existing contact: ${contactId}`);
+      console.warn("[GHL] Failed to create or update contact");
+      return null;
     }
 
-    // Get or create the "Intake" tag
-    const tagId = await getOrCreateTag(INTAKE_TAG_NAME);
-    if (!tagId) {
-      console.warn("[GHL] Failed to get or create Intake tag");
-      return contactId; // Still return contact ID even if tagging fails
+    // Get current contact to see existing tags
+    const contact = await getContact(contactId);
+    if (!contact) {
+      console.warn("[GHL] Failed to retrieve contact after creation");
+      return contactId; // Still return ID even if we can't get tags
     }
 
-    // Add tag to contact
-    const tagAdded = await addTagToContact(contactId, tagId);
-    if (tagAdded) {
-      console.log(`[GHL] Added Intake tag to contact ${contactId}`);
-    } else {
-      console.warn(`[GHL] Failed to add tag to contact ${contactId}`);
+    const existingTags = contact.tags || [];
+    
+    // Check if Intake tag already exists
+    if (existingTags.includes(INTAKE_TAG_NAME)) {
+      console.log(`[GHL] Contact ${contactId} already has "${INTAKE_TAG_NAME}" tag`);
+      return contactId;
+    }
+
+    // Add Intake tag
+    const updatedTags = [...existingTags, INTAKE_TAG_NAME];
+    const tagAdded = await updateContactTags(contactId, updatedTags);
+    
+    if (!tagAdded) {
+      console.warn(`[GHL] Failed to add "${INTAKE_TAG_NAME}" tag to contact ${contactId}`);
+      // Still return contact ID even if tagging fails
     }
 
     return contactId;
