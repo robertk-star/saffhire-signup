@@ -86,6 +86,35 @@ function fullName(first: string | null, last: string | null) {
   return [first, last].filter(Boolean).join(" ") || "—";
 }
 
+/**
+ * Parse conversationLog JSON to extract form data.
+ * Falls back to individual columns if JSON is missing/invalid.
+ */
+function parseConversationLog(logJson: string | null): Record<string, any> {
+  if (!logJson) return {};
+  try {
+    return JSON.parse(logJson);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Get a field value with fallback chain:
+ * 1. Try individual column
+ * 2. Try conversationLog JSON
+ * 3. Return null
+ */
+function getFieldValue(
+  intake: IntakeRow,
+  columnValue: string | null | undefined,
+  jsonKey: string
+): string | null {
+  if (columnValue) return columnValue;
+  const parsed = parseConversationLog(intake.conversationLog);
+  return parsed[jsonKey] || null;
+}
+
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
 
 function IntakeDetailModal({
@@ -95,11 +124,29 @@ function IntakeDetailModal({
   intake: IntakeRow;
   onClose: () => void;
 }) {
+  const parsed = parseConversationLog(intake.conversationLog);
+
+  // Extract admin users with fallback to individual columns
   const adminUsers = [
-    intake.admin1FirstName ? { firstName: intake.admin1FirstName, lastName: intake.admin1LastName || "", email: intake.admin1Email || "", phone: intake.admin1Mobile || undefined } : null,
-    intake.admin2FirstName ? { firstName: intake.admin2FirstName, lastName: intake.admin2LastName || "", email: intake.admin2Email || "", phone: intake.admin2Mobile || undefined } : null,
-    intake.admin3FirstName ? { firstName: intake.admin3FirstName, lastName: intake.admin3LastName || "", email: intake.admin3Email || "", phone: intake.admin3Mobile || undefined } : null,
-  ].filter(Boolean) as Array<{ firstName: string; lastName: string; email: string; phone?: string }>;
+    {
+      firstName: getFieldValue(intake, intake.admin1FirstName, "admin1FirstName"),
+      lastName: getFieldValue(intake, intake.admin1LastName, "admin1LastName"),
+      email: getFieldValue(intake, intake.admin1Email, "admin1Email"),
+      phone: getFieldValue(intake, intake.admin1Mobile, "admin1Mobile"),
+    },
+    {
+      firstName: getFieldValue(intake, intake.admin2FirstName, "admin2FirstName"),
+      lastName: getFieldValue(intake, intake.admin2LastName, "admin2LastName"),
+      email: getFieldValue(intake, intake.admin2Email, "admin2Email"),
+      phone: getFieldValue(intake, intake.admin2Mobile, "admin2Mobile"),
+    },
+    {
+      firstName: getFieldValue(intake, intake.admin3FirstName, "admin3FirstName"),
+      lastName: getFieldValue(intake, intake.admin3LastName, "admin3LastName"),
+      email: getFieldValue(intake, intake.admin3Email, "admin3Email"),
+      phone: getFieldValue(intake, intake.admin3Mobile, "admin3Mobile"),
+    },
+  ].filter((u) => u.firstName || u.lastName || u.email);
 
   const Section = ({
     title,
@@ -123,12 +170,36 @@ function IntakeDetailModal({
     </>
   );
 
+  // Extract all fields with fallback to JSON
+  const companyName = getFieldValue(intake, intake.companyName, "companyName");
+  const ein = getFieldValue(intake, intake.ein, "ein");
+  const businessEntity = getFieldValue(intake, intake.businessEntity, "businessEntity");
+  const ownerFirstName = getFieldValue(intake, intake.ownerFirstName, "ownerFirstName");
+  const ownerLastName = getFieldValue(intake, intake.ownerLastName, "ownerLastName");
+  const ownerEmail = getFieldValue(intake, intake.ownerEmail, "ownerEmail");
+  const ownerPhone = getFieldValue(intake, intake.ownerPhone, "ownerPhone");
+  const ownerTitle = getFieldValue(intake, intake.ownerTitle, "ownerTitle");
+  const contactFirstName = getFieldValue(intake, intake.contactFirstName, "contactFirstName");
+  const contactLastName = getFieldValue(intake, intake.contactLastName, "contactLastName");
+  const contactEmail = getFieldValue(intake, intake.contactEmail, "contactEmail");
+  const contactPhone = getFieldValue(intake, intake.contactPhone, "contactPhone");
+  const contactTitle = getFieldValue(intake, intake.contactTitle, "contactTitle");
+  const businessStreet = getFieldValue(intake, intake.businessStreet, "businessStreet");
+  const businessCity = getFieldValue(intake, intake.businessCity, "businessCity");
+  const businessState = getFieldValue(intake, intake.businessState, "businessState");
+  const businessZip = getFieldValue(intake, intake.businessZip, "businessZip");
+  const billingSameAsBusiness = getFieldValue(intake, intake.billingSameAsBusiness, "billingSameAsBusiness");
+  const billingStreet = getFieldValue(intake, intake.billingStreet, "billingStreet");
+  const billingCity = getFieldValue(intake, intake.billingCity, "billingCity");
+  const billingState = getFieldValue(intake, intake.billingState, "billingState");
+  const billingZip = getFieldValue(intake, intake.billingZip, "billingZip");
+
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <span>{intake.companyName || "Unnamed Company"}</span>
+            <span>{companyName || "Unnamed Company"}</span>
             <Badge
               variant={intake.status === "Completed" ? "default" : "secondary"}
               className={
@@ -144,47 +215,47 @@ function IntakeDetailModal({
 
         <div className="mt-4">
           <Section title="Client Information">
-            <Field label="Company Name" value={intake.companyName} />
-            <Field label="EIN" value={intake.ein} />
-            <Field label="Entity Type" value={intake.businessEntity} />
-            <Field label="Owner" value={fullName(intake.ownerFirstName, intake.ownerLastName)} />
-            <Field label="Owner Email" value={intake.ownerEmail} />
-            <Field label="Owner Phone" value={intake.ownerPhone} />
-            <Field label="Owner Title" value={intake.ownerTitle} />
+            <Field label="Company Name" value={companyName} />
+            <Field label="EIN" value={ein} />
+            <Field label="Entity Type" value={businessEntity} />
+            <Field label="Owner" value={fullName(ownerFirstName, ownerLastName)} />
+            <Field label="Owner Email" value={ownerEmail} />
+            <Field label="Owner Phone" value={ownerPhone} />
+            <Field label="Owner Title" value={ownerTitle} />
           </Section>
 
           <Section title="Contact Information">
-            <Field label="Contact" value={fullName(intake.contactFirstName, intake.contactLastName)} />
-            <Field label="Contact Email" value={intake.contactEmail} />
-            <Field label="Contact Phone" value={intake.contactPhone} />
-            <Field label="Contact Title" value={intake.contactTitle} />
+            <Field label="Contact" value={fullName(contactFirstName, contactLastName)} />
+            <Field label="Contact Email" value={contactEmail} />
+            <Field label="Contact Phone" value={contactPhone} />
+            <Field label="Contact Title" value={contactTitle} />
           </Section>
 
           <Section title="Business Address">
-            <Field label="Street" value={intake.businessStreet} />
-            <Field label="City" value={intake.businessCity} />
-            <Field label="State" value={intake.businessState} />
-            <Field label="ZIP" value={intake.businessZip} />
+            <Field label="Street" value={businessStreet} />
+            <Field label="City" value={businessCity} />
+            <Field label="State" value={businessState} />
+            <Field label="ZIP" value={businessZip} />
           </Section>
 
           <Section title="Billing Address">
-            <Field label="Same as Business?" value={intake.billingSameAsBusiness} />
-            {intake.billingSameAsBusiness?.toLowerCase() !== "yes" && (
+            <Field label="Same as Business?" value={billingSameAsBusiness} />
+            {billingSameAsBusiness?.toLowerCase() !== "yes" && billingSameAsBusiness?.toLowerCase() !== "true" ? (
               <>
-                <Field label="Street" value={intake.billingStreet} />
-                <Field label="City" value={intake.billingCity} />
-                <Field label="State" value={intake.billingState} />
-                <Field label="ZIP" value={intake.billingZip} />
+                <Field label="Street" value={billingStreet} />
+                <Field label="City" value={billingCity} />
+                <Field label="State" value={billingState} />
+                <Field label="ZIP" value={billingZip} />
               </>
-            )}
+            ) : null}
           </Section>
 
           {adminUsers.length > 0 && (
             <Section title="Admin Users">
-              {adminUsers.map((u: { firstName: string; lastName: string; email: string; phone?: string }, i: number) => (
+              {adminUsers.map((u, i) => (
                 <div key={i} className="col-span-2 bg-muted/40 rounded-lg p-3 mb-2">
                   <p className="font-medium">
-                    {u.firstName} {u.lastName}
+                    {fullName(u.firstName, u.lastName)}
                   </p>
                   <p className="text-muted-foreground text-xs mt-0.5">
                     {u.email} {u.phone ? `· ${u.phone}` : ""}
@@ -268,11 +339,18 @@ export default function Admin() {
     .filter((r) => {
       if (!search.trim()) return true;
       const q = search.toLowerCase();
+      
+      // Search in columns first, then in JSON
+      const companyName = getFieldValue(r, r.companyName, "companyName");
+      const ownerEmail = getFieldValue(r, r.ownerEmail, "ownerEmail");
+      const ownerFirstName = getFieldValue(r, r.ownerFirstName, "ownerFirstName");
+      const ownerLastName = getFieldValue(r, r.ownerLastName, "ownerLastName");
+      
       return (
-        r.companyName?.toLowerCase().includes(q) ||
-        r.ownerEmail?.toLowerCase().includes(q) ||
-        r.ownerFirstName?.toLowerCase().includes(q) ||
-        r.ownerLastName?.toLowerCase().includes(q)
+        companyName?.toLowerCase().includes(q) ||
+        ownerEmail?.toLowerCase().includes(q) ||
+        ownerFirstName?.toLowerCase().includes(q) ||
+        ownerLastName?.toLowerCase().includes(q)
       );
     })
     .sort((a, b) => {
@@ -419,80 +497,88 @@ export default function Admin() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((row, i) => (
-                    <tr
-                      key={row.id}
-                      className={`border-b border-border last:border-0 hover:bg-muted/20 transition-colors cursor-pointer ${
-                        i % 2 === 0 ? "" : "bg-muted/10"
-                      }`}
-                      onClick={() => setSelectedIntake(row)}
-                    >
-                      <td className="px-4 py-3 font-medium text-foreground">
-                        {row.companyName || (
-                          <span className="text-muted-foreground italic">Unknown</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {fullName(row.ownerFirstName, row.ownerLastName)}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {row.ownerEmail ? (
-                          <a
-                            href={`mailto:${row.ownerEmail}`}
-                            className="text-primary hover:underline"
-                            onClick={(e) => e.stopPropagation()}
+                  {filtered.map((row, i) => {
+                    const companyName = getFieldValue(row, row.companyName, "companyName");
+                    const ownerFirstName = getFieldValue(row, row.ownerFirstName, "ownerFirstName");
+                    const ownerLastName = getFieldValue(row, row.ownerLastName, "ownerLastName");
+                    const ownerEmail = getFieldValue(row, row.ownerEmail, "ownerEmail");
+                    const ownerPhone = getFieldValue(row, row.ownerPhone, "ownerPhone");
+
+                    return (
+                      <tr
+                        key={row.id}
+                        className={`border-b border-border last:border-0 hover:bg-muted/20 transition-colors cursor-pointer ${
+                          i % 2 === 0 ? "" : "bg-muted/10"
+                        }`}
+                        onClick={() => setSelectedIntake(row)}
+                      >
+                        <td className="px-4 py-3 font-medium text-foreground">
+                          {companyName || (
+                            <span className="text-muted-foreground italic">Unknown</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-foreground">
+                          {fullName(ownerFirstName, ownerLastName)}
+                        </td>
+                        <td className="px-4 py-3 text-foreground">
+                          {ownerEmail ? (
+                            <a
+                              href={`mailto:${ownerEmail}`}
+                              className="text-primary hover:underline"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {ownerEmail}
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-foreground">
+                          {ownerPhone || <span className="text-muted-foreground">—</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge
+                            variant="outline"
+                            className={
+                              row.status === "Completed"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                : "bg-amber-50 text-amber-700 border-amber-200"
+                            }
                           >
-                            {row.ownerEmail}
-                          </a>
-                        ) : (
-                          <span className="text-muted-foreground">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-foreground">
-                        {row.ownerPhone || <span className="text-muted-foreground">—</span>}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge
-                          variant="outline"
-                          className={
-                            row.status === "Completed"
-                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                              : "bg-amber-50 text-amber-700 border-amber-200"
-                          }
-                        >
-                          {row.status}
-                        </Badge>
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground text-xs">
-                        {formatDate(row.updatedAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        {row.synced === "true" ? (
-                          <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                            Synced
+                            {row.status}
                           </Badge>
-                        ) : (
-                          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                            Pending
-                          </Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="gap-1 text-muted-foreground hover:text-foreground"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedIntake(row);
-                          }}
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                          View
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                        <td className="px-4 py-3 text-muted-foreground text-xs">
+                          {formatDate(row.updatedAt)}
+                        </td>
+                        <td className="px-4 py-3">
+                          {row.synced === "true" ? (
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
+                              Synced
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
+                              Pending
+                            </Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="gap-1 text-muted-foreground hover:text-foreground"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedIntake(row);
+                            }}
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            View
+                          </Button>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
