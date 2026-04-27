@@ -298,8 +298,6 @@ Extract the value for "${fieldLabel}".`,
   submitIntake: publicProcedure
     .input(
       z.object({
-        // Session ID for tracking
-        sessionId: z.string().min(1),
         // Section 1
         companyName: z.string().min(1),
         ein: z.string().min(1),
@@ -349,7 +347,6 @@ Extract the value for "${fieldLabel}".`,
       // 1. Save to database - throw error if insert fails
       try {
         await db.insert(signupIntakes).values({
-          sessionId: input.sessionId,
           status: "Completed",
           companyName: input.companyName,
             ein: input.ein,
