@@ -244,12 +244,12 @@ export default function AccountSetup() {
       ein: formData.ein,
       businessEntity: formData.businessEntity,
       ownerFirstName: formData.ownerName.split(" ")[0] || "",
-      ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || "",
+      ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || formData.ownerName.split(" ")[0] || "",
       ownerEmail: formData.ownerEmail,
       ownerPhone: formData.ownerPhone,
       ownerTitle: "",
       contactFirstName: formData.contactName.split(" ")[0] || "",
-      contactLastName: formData.contactName.split(" ").slice(1).join(" ") || "",
+      contactLastName: formData.contactName.split(" ").slice(1).join(" ") || formData.contactName.split(" ")[0] || "",
       contactEmail: formData.contactEmail,
       contactPhone: formData.contactWorkPhone,
       contactTitle: "",
@@ -342,7 +342,7 @@ export default function AccountSetup() {
         {showReview ? (
           <ReviewScreen formData={formData} />
         ) : (
-          <FormStep step={currentStep} formData={formData} errors={errors} onChange={handleInputChange} sessionId={sessionId} />
+          <FormStep step={currentStep} formData={formData} errors={errors} onChange={handleInputChange} />
         )}
 
         {/* Navigation Buttons */}
@@ -368,10 +368,11 @@ interface FormStepProps {
   formData: FormData;
   errors: Record<string, string>;
   onChange: (field: keyof FormData, value: string | boolean) => void;
-  sessionId: string;
 }
 
-function FormStep({ step, formData, errors, onChange, sessionId }: FormStepProps) {
+function FormStep({ step, formData, errors, onChange }: FormStepProps) {
+  // Create a stable sessionId using nanoid if not already created
+  const [sessionId] = useState(() => nanoid());
   if (step === 0) {
     return (
       <div className="space-y-6">
