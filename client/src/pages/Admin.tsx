@@ -374,7 +374,7 @@ export default function Admin() {
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:opacity-80 transition-opacity inline-block">
               <img
                 src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
                 alt="SaffHire"

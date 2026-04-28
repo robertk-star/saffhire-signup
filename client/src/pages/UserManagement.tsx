@@ -182,7 +182,7 @@ export default function UserManagement() {
               </a>
             </Button>
             <div className="h-5 w-px bg-border" />
-            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:opacity-80 transition-opacity inline-block">
               <img
                 src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
                 alt="SaffHire"
