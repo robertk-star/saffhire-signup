@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, Shield, User, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
+import { Loader2, Shield, User, Trash2, ChevronUp, ChevronDown, Plus, ArrowLeft } from "lucide-react";
 import { useState } from "react";
 import { getLoginUrl } from "@/const";
 
@@ -170,6 +170,18 @@ export default function UserManagement() {
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="gap-2 text-muted-foreground"
+            >
+              <a href="/admin">
+                <ArrowLeft className="w-4 h-4" />
+                Back
+              </a>
+            </Button>
+            <div className="h-5 w-px bg-border" />
             <img
               src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
               alt="SaffHire"
