@@ -101,8 +101,8 @@ function parseConversationLog(logJson: string | null): Record<string, any> {
 
 /**
  * Get a field value with fallback chain:
- * 1. Try individual column
- * 2. Try conversationLog JSON
+ * 1. Try conversationLog JSON first (since columns are now NULL in DB)
+ * 2. Try individual column as fallback
  * 3. Return null
  */
 function getFieldValue(
@@ -110,9 +110,15 @@ function getFieldValue(
   columnValue: string | null | undefined,
   jsonKey: string
 ): string | null {
-  if (columnValue) return columnValue;
+  // Always try JSON first since that's where the data is stored now
   const parsed = parseConversationLog(intake.conversationLog);
-  return parsed[jsonKey] || null;
+  const jsonValue = parsed[jsonKey];
+  if (jsonValue) return jsonValue;
+  
+  // Fallback to individual column if JSON doesn't have it
+  if (columnValue) return columnValue;
+  
+  return null;
 }
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
