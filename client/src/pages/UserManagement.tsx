@@ -2,6 +2,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -18,15 +19,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Shield, User, Trash2, ChevronUp, ChevronDown } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Loader2, Shield, User, Trash2, ChevronUp, ChevronDown, Plus } from "lucide-react";
 import { useState } from "react";
 import { getLoginUrl } from "@/const";
 
 export default function UserManagement() {
   const { user, loading } = useAuth();
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [actionType, setActionType] = useState<"promote" | "demote" | "delete" | null>(null);
+  const [actionType, setActionType] = useState<"promote" | "demote" | "delete" | "edit" | "add" | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [editForm, setEditForm] = useState({ name: "", email: "" });
+  const [addForm, setAddForm] = useState({ name: "", email: "", role: "user" });
 
   // Fetch users
   const { data, isLoading, refetch } = trpc.users.listUsers.useQuery(undefined, {
@@ -55,6 +65,23 @@ export default function UserManagement() {
       refetch();
       setSelectedUser(null);
       setActionType(null);
+    },
+  });
+
+  const updateUserMutation = trpc.users.updateUser.useMutation({
+    onSuccess: () => {
+      refetch();
+      setSelectedUser(null);
+      setActionType(null);
+      setEditForm({ name: "", email: "" });
+    },
+  });
+
+  const createUserMutation = trpc.users.createUser.useMutation({
+    onSuccess: () => {
+      refetch();
+      setActionType(null);
+      setAddForm({ name: "", email: "", role: "user" });
     },
   });
 
@@ -111,6 +138,32 @@ export default function UserManagement() {
     }
   };
 
+  const handleUpdate = async () => {
+    if (selectedUser && (editForm.name || editForm.email)) {
+      await updateUserMutation.mutateAsync({
+        userId: selectedUser.id,
+        name: editForm.name || undefined,
+        email: editForm.email || undefined,
+      });
+    }
+  };
+
+  const handleCreate = async () => {
+    if (addForm.name && addForm.email) {
+      await createUserMutation.mutateAsync({
+        name: addForm.name,
+        email: addForm.email,
+        role: addForm.role as "user" | "admin",
+      });
+    }
+  };
+
+  const openEditDialog = (u: any) => {
+    setSelectedUser(u);
+    setEditForm({ name: u.name || "", email: u.email || "" });
+    setActionType("edit");
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -126,6 +179,14 @@ export default function UserManagement() {
             <span className="text-sm font-semibold text-foreground">User Management</span>
           </div>
           <div className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => setActionType("add")}
+              className="gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Add User
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -256,10 +317,10 @@ export default function UserManagement() {
                           size="sm"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSelectedUser(u);
+                            openEditDialog(u);
                           }}
                         >
-                          Manage
+                          Edit
                         </Button>
                       </td>
                     </tr>
@@ -271,8 +332,149 @@ export default function UserManagement() {
         </div>
       </main>
 
-      {/* User Detail Dialog */}
-      {selectedUser && (
+      {/* Add User Dialog */}
+      {actionType === "add" && (
+        <Dialog open onOpenChange={() => setActionType(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New User</DialogTitle>
+              <DialogDescription>
+                Create a new user account with initial role assignment.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground">Name</label>
+                <Input
+                  placeholder="Full name"
+                  value={addForm.name}
+                  onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <Input
+                  type="email"
+                  placeholder="user@example.com"
+                  value={addForm.email}
+                  onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground">Role</label>
+                <Select value={addForm.role} onValueChange={(value) => setAddForm({ ...addForm, role: value })}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="user">User</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <Button variant="outline" onClick={() => setActionType(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreate}
+                  disabled={createUserMutation.isPending || !addForm.name || !addForm.email}
+                >
+                  {createUserMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Create User
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit User Dialog */}
+      {actionType === "edit" && selectedUser && (
+        <Dialog open onOpenChange={() => setActionType(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit User</DialogTitle>
+              <DialogDescription>
+                Update user information and role.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-foreground">Name</label>
+                <Input
+                  placeholder="Full name"
+                  value={editForm.name}
+                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground">Email</label>
+                <Input
+                  type="email"
+                  placeholder="user@example.com"
+                  value={editForm.email}
+                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-foreground">Role</label>
+                <div className="mt-1 p-2 bg-muted rounded border border-border">
+                  <Badge
+                    variant="outline"
+                    className={
+                      selectedUser.role === "admin"
+                        ? "bg-amber-50 text-amber-700 border-amber-200"
+                        : "bg-slate-50 text-slate-700 border-slate-200"
+                    }
+                  >
+                    {selectedUser.role === "admin" ? (
+                      <Shield className="w-3 h-3 mr-1" />
+                    ) : (
+                      <User className="w-3 h-3 mr-1" />
+                    )}
+                    {selectedUser.role === "admin" ? "Admin" : "User"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Use the Manage button below to change role
+                </p>
+              </div>
+
+              <div className="flex gap-3 justify-end pt-4">
+                <Button variant="outline" onClick={() => setActionType(null)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpdate}
+                  disabled={updateUserMutation.isPending || (!editForm.name && !editForm.email)}
+                >
+                  {updateUserMutation.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  ) : null}
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* User Management Dialog */}
+      {actionType === null && selectedUser && (
         <Dialog open={!!selectedUser} onOpenChange={() => setSelectedUser(null)}>
           <DialogContent>
             <DialogHeader>
@@ -305,6 +507,15 @@ export default function UserManagement() {
               </div>
 
               <div className="border-t border-border pt-4 space-y-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => openEditDialog(selectedUser)}
+                >
+                  Edit Information
+                </Button>
+
                 {selectedUser.id !== user?.id && (
                   <>
                     {selectedUser.role === "user" ? (
