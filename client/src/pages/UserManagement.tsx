@@ -181,14 +181,15 @@ export default function UserManagement() {
                 Back
               </a>
             </Button>
-            <div className="h-5 w-px bg-border" />
-            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="cursor-pointer hover:opacity-80 transition-opacity inline-block pointer-events-auto z-20" style={{ pointerEvents: 'auto' }}>
-              <img
-                src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
-                alt="SaffHire"
-                className="h-8 w-auto object-contain pointer-events-none"
-              />
-            </a>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+            >
+              <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer">
+                Back to Website
+              </a>
+            </Button>
             <div className="h-5 w-px bg-border" />
             <span className="text-sm font-semibold text-foreground">User Management</span>
           </div>
