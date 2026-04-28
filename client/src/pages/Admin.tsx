@@ -17,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users } from "lucide-react";
 import { getLoginUrl } from "@/const";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -383,6 +383,17 @@ export default function Admin() {
             <span className="text-sm font-semibold text-foreground">Submissions Dashboard</span>
           </div>
           <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              asChild
+              className="gap-2 text-muted-foreground"
+            >
+              <a href="/users">
+                <Users className="w-4 h-4" />
+                Users
+              </a>
+            </Button>
             <Button
               variant="ghost"
               size="sm"
