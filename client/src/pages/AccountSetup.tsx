@@ -299,8 +299,17 @@ export default function AccountSetup() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <div className="border-b border-border bg-card">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <img src="/manus-storage/SaffhireLogoShirtStyle_300428e9.webp" alt="SaffHire" className="h-16 w-auto" />
+        <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+          <img src="/manus-storage/SaffhireLogoShirtStyle_300428e9.webp" alt="SaffHire" className="h-12 w-auto" />
+          <Button
+            variant="outline"
+            size="sm"
+            asChild
+          >
+            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer">
+              Back to Website
+            </a>
+          </Button>
         </div>
       </div>
 
