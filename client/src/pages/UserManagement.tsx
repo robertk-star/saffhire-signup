@@ -182,11 +182,13 @@ export default function UserManagement() {
               </a>
             </Button>
             <div className="h-5 w-px bg-border" />
-            <img
-              src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
-              alt="SaffHire"
-              className="h-8 w-auto object-contain"
-            />
+            <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
+              <img
+                src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
+                alt="SaffHire"
+                className="h-8 w-auto object-contain"
+              />
+            </a>
             <div className="h-5 w-px bg-border" />
             <span className="text-sm font-semibold text-foreground">User Management</span>
           </div>
