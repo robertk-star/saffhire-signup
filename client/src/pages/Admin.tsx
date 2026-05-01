@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -30,40 +29,6 @@ type IntakeRow = {
   status: "In Progress" | "Completed";
   synced: "true" | "false";
   syncedAt: Date | null;
-  companyName: string | null;
-  ownerFirstName: string | null;
-  ownerLastName: string | null;
-  ownerEmail: string | null;
-  ownerPhone: string | null;
-  ownerTitle: string | null;
-  ein: string | null;
-  businessEntity: string | null;
-  contactFirstName: string | null;
-  contactLastName: string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
-  contactTitle: string | null;
-  businessStreet: string | null;
-  businessCity: string | null;
-  businessState: string | null;
-  businessZip: string | null;
-  billingSameAsBusiness: string | null;
-  billingStreet: string | null;
-  billingCity: string | null;
-  billingState: string | null;
-  billingZip: string | null;
-  admin1FirstName: string | null;
-  admin1LastName: string | null;
-  admin1Email: string | null;
-  admin1Mobile: string | null;
-  admin2FirstName: string | null;
-  admin2LastName: string | null;
-  admin2Email: string | null;
-  admin2Mobile: string | null;
-  admin3FirstName: string | null;
-  admin3LastName: string | null;
-  admin3Email: string | null;
-  admin3Mobile: string | null;
   conversationLog: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -82,13 +47,12 @@ function formatDate(d: Date | string | null) {
   });
 }
 
-function fullName(first: string | null, last: string | null) {
+function fullName(first: string | null | undefined, last: string | null | undefined) {
   return [first, last].filter(Boolean).join(" ") || "—";
 }
 
 /**
  * Parse conversationLog JSON to extract form data.
- * Falls back to individual columns if JSON is missing/invalid.
  */
 function parseConversationLog(logJson: string | null): Record<string, any> {
   if (!logJson) return {};
@@ -97,28 +61,6 @@ function parseConversationLog(logJson: string | null): Record<string, any> {
   } catch {
     return {};
   }
-}
-
-/**
- * Get a field value with fallback chain:
- * 1. Try conversationLog JSON first (since columns are now NULL in DB)
- * 2. Try individual column as fallback
- * 3. Return null
- */
-function getFieldValue(
-  intake: IntakeRow,
-  columnValue: string | null | undefined,
-  jsonKey: string
-): string | null {
-  // Always try JSON first since that's where the data is stored now
-  const parsed = parseConversationLog(intake.conversationLog);
-  const jsonValue = parsed[jsonKey];
-  if (jsonValue) return jsonValue;
-  
-  // Fallback to individual column if JSON doesn't have it
-  if (columnValue) return columnValue;
-  
-  return null;
 }
 
 // ─── Detail Modal ─────────────────────────────────────────────────────────────
@@ -130,32 +72,10 @@ function IntakeDetailModal({
   intake: IntakeRow;
   onClose: () => void;
 }) {
-  const parsed = parseConversationLog(intake.conversationLog);
+  const data = parseConversationLog(intake.conversationLog);
 
-  // Extract admin users with fallback to individual columns
-  const adminUsers = [
-    {
-      firstName: getFieldValue(intake, intake.admin1FirstName, "admin1FirstName"),
-      lastName: getFieldValue(intake, intake.admin1LastName, "admin1LastName"),
-      email: getFieldValue(intake, intake.admin1Email, "admin1Email"),
-      phone: getFieldValue(intake, intake.admin1Mobile, "admin1Mobile"),
-      jobTitle: getFieldValue(intake, null, "admin1JobTitle"),
-    },
-    {
-      firstName: getFieldValue(intake, intake.admin2FirstName, "admin2FirstName"),
-      lastName: getFieldValue(intake, intake.admin2LastName, "admin2LastName"),
-      email: getFieldValue(intake, intake.admin2Email, "admin2Email"),
-      phone: getFieldValue(intake, intake.admin2Mobile, "admin2Mobile"),
-      jobTitle: getFieldValue(intake, null, "admin2JobTitle"),
-    },
-    {
-      firstName: getFieldValue(intake, intake.admin3FirstName, "admin3FirstName"),
-      lastName: getFieldValue(intake, intake.admin3LastName, "admin3LastName"),
-      email: getFieldValue(intake, intake.admin3Email, "admin3Email"),
-      phone: getFieldValue(intake, intake.admin3Mobile, "admin3Mobile"),
-      jobTitle: getFieldValue(intake, null, "admin3JobTitle"),
-    },
-  ].filter((u) => u.firstName || u.lastName || u.email);
+  // Extract admin users from adminUsers array
+  const adminUsers = Array.isArray(data.adminUsers) ? data.adminUsers : [];
 
   const Section = ({
     title,
@@ -172,56 +92,19 @@ function IntakeDetailModal({
     </div>
   );
 
-  const Field = ({ label, value }: { label: string; value: string | null }) => (
+  const Field = ({ label, value }: { label: string; value: string | null | undefined }) => (
     <>
       <span className="text-muted-foreground">{label}</span>
       <span className="font-medium text-foreground">{value || "—"}</span>
     </>
   );
 
-  // Extract all fields with fallback to JSON
-  const companyName = getFieldValue(intake, intake.companyName, "companyName");
-  const dba = getFieldValue(intake, null, "dba");
-  const ein = getFieldValue(intake, intake.ein, "ein");
-  const businessType = getFieldValue(intake, null, "businessType");
-  const businessEntity = getFieldValue(intake, intake.businessEntity, "businessEntity");
-  const ownerName = getFieldValue(intake, null, "ownerName");
-  const ownerFirstName = getFieldValue(intake, intake.ownerFirstName, "ownerFirstName");
-  const ownerLastName = getFieldValue(intake, intake.ownerLastName, "ownerLastName");
-  const ownerEmail = getFieldValue(intake, intake.ownerEmail, "ownerEmail");
-  const ownerPhone = getFieldValue(intake, intake.ownerPhone, "ownerPhone");
-  const ownerPhoneExt = getFieldValue(intake, null, "ownerPhoneExt");
-  const ownerTitle = getFieldValue(intake, intake.ownerTitle, "ownerTitle");
-  const contactName = getFieldValue(intake, null, "contactName");
-  const contactFirstName = getFieldValue(intake, intake.contactFirstName, "contactFirstName");
-  const contactLastName = getFieldValue(intake, intake.contactLastName, "contactLastName");
-  const contactEmail = getFieldValue(intake, intake.contactEmail, "contactEmail");
-  const contactWorkPhone = getFieldValue(intake, null, "contactWorkPhone");
-  const contactWorkPhoneExt = getFieldValue(intake, null, "contactWorkPhoneExt");
-  const contactMobilePhone = getFieldValue(intake, null, "contactMobilePhone");
-  const contactPhone = getFieldValue(intake, intake.contactPhone, "contactPhone");
-  const contactTitle = getFieldValue(intake, intake.contactTitle, "contactTitle");
-  const businessStreet = getFieldValue(intake, intake.businessStreet, "businessStreet");
-  const businessStreet2 = getFieldValue(intake, null, "businessStreet2");
-  const businessCity = getFieldValue(intake, intake.businessCity, "businessCity");
-  const businessState = getFieldValue(intake, intake.businessState, "businessState");
-  const businessZip = getFieldValue(intake, intake.businessZip, "businessZip");
-  const businessCountry = getFieldValue(intake, null, "businessCountry");
-  const billingSameAsBusiness = getFieldValue(intake, intake.billingSameAsBusiness, "billingSameAsBusiness");
-  const billingStreet = getFieldValue(intake, intake.billingStreet, "billingStreet");
-  const billingStreet2 = getFieldValue(intake, null, "billingStreet2");
-  const billingCity = getFieldValue(intake, intake.billingCity, "billingCity");
-  const billingState = getFieldValue(intake, intake.billingState, "billingState");
-  const billingZip = getFieldValue(intake, intake.billingZip, "billingZip");
-  const billingCountry = getFieldValue(intake, null, "billingCountry");
-  const billingAttention = getFieldValue(intake, null, "billingAttention");
-
   return (
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
-            <span>{companyName || "Unnamed Company"}</span>
+            <span>{data.companyName || "Unnamed Company"}</span>
             <Badge
               variant={intake.status === "Completed" ? "default" : "secondary"}
               className={
@@ -237,70 +120,70 @@ function IntakeDetailModal({
 
         <div className="mt-4">
           <Section title="Client Information">
-            <Field label="Company Name" value={companyName} />
-            <Field label="DBA" value={dba} />
-            <Field label="EIN" value={ein} />
-            <Field label="Business Type" value={businessType} />
-            <Field label="Entity Type" value={businessEntity} />
-            <Field label="Owner" value={ownerName || fullName(ownerFirstName, ownerLastName)} />
-            <Field label="Owner Email" value={ownerEmail} />
-            <Field label="Owner Phone" value={ownerPhone} />
-            {ownerPhoneExt && <Field label="Owner Phone Ext" value={ownerPhoneExt} />}
-            <Field label="Owner Title" value={ownerTitle} />
+            <Field label="Company Name" value={data.companyName} />
+            {data.dba && <Field label="DBA" value={data.dba} />}
+            <Field label="EIN" value={data.ein} />
+            {data.businessType && <Field label="Business Type" value={data.businessType} />}
+            <Field label="Entity Type" value={data.businessEntity} />
+            <Field label="Owner" value={data.ownerName || fullName(data.ownerFirstName, data.ownerLastName)} />
+            <Field label="Owner Email" value={data.ownerEmail} />
+            <Field label="Owner Phone" value={data.ownerPhone} />
+            {data.ownerPhoneExt && <Field label="Owner Phone Ext" value={data.ownerPhoneExt} />}
+            {data.ownerTitle && <Field label="Owner Title" value={data.ownerTitle} />}
           </Section>
 
           <Section title="Contact Information">
-            <Field label="Contact" value={contactName || fullName(contactFirstName, contactLastName)} />
-            <Field label="Contact Email" value={contactEmail} />
-            <Field label="Contact Work Phone" value={contactWorkPhone} />
-            {contactWorkPhoneExt && <Field label="Contact Work Phone Ext" value={contactWorkPhoneExt} />}
-            <Field label="Contact Mobile" value={contactMobilePhone} />
-            <Field label="Contact Title" value={contactTitle} />
+            <Field label="Contact" value={data.contactName || fullName(data.contactFirstName, data.contactLastName)} />
+            <Field label="Contact Email" value={data.contactEmail} />
+            {data.contactWorkPhone && <Field label="Contact Work Phone" value={data.contactWorkPhone} />}
+            {data.contactWorkPhoneExt && <Field label="Contact Work Phone Ext" value={data.contactWorkPhoneExt} />}
+            {data.contactMobilePhone && <Field label="Contact Mobile" value={data.contactMobilePhone} />}
+            {data.contactTitle && <Field label="Contact Title" value={data.contactTitle} />}
           </Section>
 
           <Section title="Business Address">
-            <Field label="Street" value={businessStreet} />
-            {businessStreet2 && <Field label="Street 2" value={businessStreet2} />}
-            <Field label="City" value={businessCity} />
-            <Field label="State" value={businessState} />
-            <Field label="ZIP" value={businessZip} />
-            {businessCountry && <Field label="Country" value={businessCountry} />}
+            <Field label="Street" value={data.businessStreet} />
+            {data.businessStreet2 && <Field label="Street 2" value={data.businessStreet2} />}
+            <Field label="City" value={data.businessCity} />
+            <Field label="State" value={data.businessState} />
+            <Field label="ZIP" value={data.businessZip} />
+            {data.businessCountry && <Field label="Country" value={data.businessCountry} />}
           </Section>
 
           <Section title="Billing Address">
-            <Field label="Same as Business?" value={billingSameAsBusiness} />
-            {billingSameAsBusiness?.toLowerCase() !== "yes" && billingSameAsBusiness?.toLowerCase() !== "true" ? (
+            <Field label="Same as Business?" value={data.billingSameAsBusiness === "true" ? "Yes" : "No"} />
+            {data.billingSameAsBusiness !== "true" && (
               <>
-                <Field label="Street" value={billingStreet} />
-                {billingStreet2 && <Field label="Street 2" value={billingStreet2} />}
-                <Field label="City" value={billingCity} />
-                <Field label="State" value={billingState} />
-                <Field label="ZIP" value={billingZip} />
-                {billingCountry && <Field label="Country" value={billingCountry} />}
-                {billingAttention && <Field label="Attention" value={billingAttention} />}
+                <Field label="Street" value={data.billingStreet} />
+                {data.billingStreet2 && <Field label="Street 2" value={data.billingStreet2} />}
+                <Field label="City" value={data.billingCity} />
+                <Field label="State" value={data.billingState} />
+                <Field label="ZIP" value={data.billingZip} />
+                {data.billingCountry && <Field label="Country" value={data.billingCountry} />}
               </>
-            ) : null}
+            )}
+            {data.billingAttention && <Field label="Attention" value={data.billingAttention} />}
           </Section>
 
           {adminUsers.length > 0 && (
             <Section title="Admin Users">
-              {adminUsers.map((u, i) => (
-                <div key={i} className="col-span-2 bg-muted/40 rounded-lg p-3 mb-2">
-                  <p className="font-medium">
-                    {fullName(u.firstName, u.lastName)}
-                  </p>
-                  {u.jobTitle && <p className="text-muted-foreground text-xs">{u.jobTitle}</p>}
-                  <p className="text-muted-foreground text-xs mt-0.5">
-                    {u.email} {u.phone ? `· ${u.phone}` : ""}
-                  </p>
+              {adminUsers.map((admin, idx) => (
+                <div key={idx} className="col-span-2 mb-4 p-3 bg-muted rounded">
+                  <div className="font-semibold mb-2">Admin {idx + 1}</div>
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <Field label="Name" value={fullName(admin.firstName, admin.lastName)} />
+                    <Field label="Email" value={admin.email} />
+                    <Field label="Phone" value={admin.phone} />
+                    {admin.jobTitle && <Field label="Job Title" value={admin.jobTitle} />}
+                  </div>
                 </div>
               ))}
             </Section>
           )}
 
-          <div className="text-xs text-muted-foreground mt-4 pt-4 border-t border-border flex justify-between">
-            <span>Created: {formatDate(intake.createdAt)}</span>
-            <span>Last updated: {formatDate(intake.updatedAt)}</span>
+          <div className="text-xs text-muted-foreground mt-6 pt-4 border-t border-border">
+            <div>Created: {formatDate(intake.createdAt)}</div>
+            <div>Last updated: {formatDate(intake.updatedAt)}</div>
           </div>
         </div>
       </DialogContent>
@@ -311,48 +194,24 @@ function IntakeDetailModal({
 // ─── Main Admin Page ──────────────────────────────────────────────────────────
 
 export default function Admin() {
-  const { user, loading } = useAuth();
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [search, setSearch] = useState("");
-  const [selectedIntake, setSelectedIntake] = useState<IntakeRow | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
-  const [isSyncing, setIsSyncing] = useState(false);
+  const { user } = useAuth();
+  const [searchTerm, setSearchTerm] = React.useState("");
+  const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
+  const [selectedIntake, setSelectedIntake] = React.useState<IntakeRow | null>(null);
 
-  const { data, isLoading, refetch, isFetching } = trpc.signup.listIntakes.useQuery(
-    { status: statusFilter, limit: 200, offset: 0 },
-    { refetchInterval: 30_000 } // auto-refresh every 30 s
-  );
-
-  const manualSync = trpc.signup.manualSyncToSheets.useMutation({
-    onSuccess: () => {
-      setIsSyncing(false);
-      refetch();
-    },
-    onError: () => {
-      setIsSyncing(false);
-    },
+  const { data: intakesData, isLoading, refetch } = trpc.signup.listIntakes.useQuery({});
+  const intakes = (Array.isArray(intakesData) ? intakesData : intakesData?.rows || []) as IntakeRow[];
+  const syncMutation = trpc.signup.manualSyncToSheets.useMutation({
+    onSuccess: () => refetch(),
   });
-
-  const handleManualSync = async () => {
-    setIsSyncing(true);
-    await manualSync.mutateAsync();
-  };
-
-  // Gate: must be logged in as admin/owner
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
-      </div>
-    );
-  }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4">
-        <p className="text-muted-foreground text-sm">You must be signed in to view this page.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <h1 className="text-2xl font-bold">Access Denied</h1>
+        <p>Please log in to access the admin dashboard.</p>
         <Button asChild>
-          <a href={getLoginUrl()}>Sign in</a>
+          <a href={getLoginUrl()}>Login</a>
         </Button>
       </div>
     );
@@ -360,132 +219,102 @@ export default function Admin() {
 
   if (user.role !== "admin") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <p className="text-muted-foreground text-sm">Access denied — admin only.</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+        <h1 className="text-2xl font-bold">Access Denied</h1>
+        <p>You do not have permission to access this page.</p>
       </div>
     );
   }
 
-  // Filter by search term
-  const rows: IntakeRow[] = (data?.rows ?? []) as IntakeRow[];
-  const filtered = rows
-    .filter((r) => {
-      if (!search.trim()) return true;
-      const q = search.toLowerCase();
-      
-      // Search in columns first, then in JSON
-      const companyName = getFieldValue(r, r.companyName, "companyName");
-      const ownerEmail = getFieldValue(r, r.ownerEmail, "ownerEmail");
-      const ownerFirstName = getFieldValue(r, r.ownerFirstName, "ownerFirstName");
-      const ownerLastName = getFieldValue(r, r.ownerLastName, "ownerLastName");
-      
-      return (
-        companyName?.toLowerCase().includes(q) ||
-        ownerEmail?.toLowerCase().includes(q) ||
-        ownerFirstName?.toLowerCase().includes(q) ||
-        ownerLastName?.toLowerCase().includes(q)
-      );
-    })
-    .sort((a, b) => {
-      const ta = new Date(a.updatedAt).getTime();
-      const tb = new Date(b.updatedAt).getTime();
-      return sortDir === "desc" ? tb - ta : ta - tb;
-    });
+  // Filter and search
+  const filtered = intakes.filter((intake) => {
+    const data = parseConversationLog(intake.conversationLog);
+    const matchesStatus = statusFilter === "all" || intake.status === statusFilter;
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch =
+      !searchTerm ||
+      (data.companyName && data.companyName.toLowerCase().includes(searchLower)) ||
+      (data.ownerName && data.ownerName.toLowerCase().includes(searchLower)) ||
+      (data.ownerEmail && data.ownerEmail.toLowerCase().includes(searchLower)) ||
+      (data.ein && data.ein.toLowerCase().includes(searchLower));
+    return matchesStatus && matchesSearch;
+  });
 
-  const completedCount = rows.filter((r) => r.status === "Completed").length;
-  const partialCount = rows.filter((r) => r.status === "In Progress").length;
+  const stats = {
+    total: intakes.length,
+    completed: intakes.filter((i: IntakeRow) => i.status === "Completed").length,
+    inProgress: intakes.filter((i: IntakeRow) => i.status === "In Progress").length,
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold">Submissions Dashboard</h1>
+          </div>
+          <div className="flex gap-3">
             <Button
               variant="outline"
-              size="sm"
-              asChild
-            >
-              <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer">
-                Back to Website
-              </a>
-            </Button>
-            <div className="h-5 w-px bg-border" />
-            <span className="text-sm font-semibold text-foreground">Submissions Dashboard</span>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              asChild
-              className="gap-2 text-muted-foreground"
-            >
-              <a href="/users">
-                <Users className="w-4 h-4" />
-                Users
-              </a>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => refetch()}
-              disabled={isFetching}
-              className="gap-2 text-muted-foreground"
+              disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 ${isFetching ? "animate-spin" : ""}`} />
+              <RefreshCw className="w-4 h-4 mr-2" />
               Refresh
             </Button>
             <Button
-              variant="outline"
-              size="sm"
-              onClick={handleManualSync}
-              disabled={isSyncing}
-              className="gap-2"
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
             >
-              <RefreshCw className={`w-4 h-4 ${isSyncing ? "animate-spin" : ""}`} />
+              {syncMutation.isPending && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               Sync Now
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.open("/users", "_self")}
+            >
+              <Users className="w-4 h-4 mr-2" />
+              Manage Users
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => window.open("https://www.saffhire.com", "_blank")}
+            >
+              Back to Website
             </Button>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-8">
-          {[
-            { label: "Total Submissions", value: rows.length, color: "text-foreground" },
-            { label: "Completed", value: completedCount, color: "text-emerald-600" },
-            { label: "In Progress (Partial)", value: partialCount, color: "text-amber-600" },
-          ].map((s) => (
-            <div
-              key={s.label}
-              className="bg-card border border-border rounded-xl p-5"
-            >
-              <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">
-                {s.label}
-              </p>
-              <p className={`text-3xl font-bold ${s.color}`}>{s.value}</p>
-            </div>
-          ))}
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-sm text-muted-foreground">Total Submissions</div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-2xl font-bold text-emerald-600">{stats.completed}</div>
+            <div className="text-sm text-muted-foreground">Completed</div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-2xl font-bold text-amber-600">{stats.inProgress}</div>
+            <div className="text-sm text-muted-foreground">In Progress</div>
+          </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        {/* Search and Filter */}
+        <div className="flex gap-4 mb-6">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search by company, name, or email…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
+              placeholder="Search by company, name, or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
             />
           </div>
-          <Select
-            value={statusFilter}
-            onValueChange={(v) => setStatusFilter(v as StatusFilter)}
-          >
-            <SelectTrigger className="w-48">
-              <SelectValue placeholder="Filter by status" />
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="w-40">
+              <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Statuses</SelectItem>
@@ -496,147 +325,81 @@ export default function Admin() {
         </div>
 
         {/* Table */}
-        <div className="bg-card border border-border rounded-xl overflow-hidden">
-          {isLoading ? (
-            <div className="flex items-center justify-center py-20">
-              <Loader2 className="animate-spin w-6 h-6 text-muted-foreground" />
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-              <p className="text-sm">No submissions found.</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Company
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Owner
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Email
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Phone
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Status
-                    </th>
-                    <th
-                      className="text-left px-4 py-3 font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground transition-colors"
-                      onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))}
-                    >
-                      <span className="flex items-center gap-1">
-                        Last Updated
-                        {sortDir === "desc" ? (
-                          <ChevronDown className="w-3 h-3" />
-                        ) : (
-                          <ChevronUp className="w-3 h-3" />
-                        )}
-                      </span>
-                    </th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">
-                      Sheets Sync
-                    </th>
-                    <th className="px-4 py-3" />
+        <div className="bg-card border border-border rounded-lg overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-border bg-muted/50">
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Company</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Owner</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Email</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Phone</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Last Updated</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Sheets Sync</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {isLoading ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-8 text-center">
+                      <Loader2 className="w-6 h-6 animate-spin mx-auto" />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((row, i) => {
-                    const companyName = getFieldValue(row, row.companyName, "companyName");
-                    const ownerFirstName = getFieldValue(row, row.ownerFirstName, "ownerFirstName");
-                    const ownerLastName = getFieldValue(row, row.ownerLastName, "ownerLastName");
-                    const ownerEmail = getFieldValue(row, row.ownerEmail, "ownerEmail");
-                    const ownerPhone = getFieldValue(row, row.ownerPhone, "ownerPhone");
-
+                ) : filtered.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                      No submissions found
+                    </td>
+                  </tr>
+                ) : (
+                  filtered.map((intake: IntakeRow) => {
+                    const data = parseConversationLog(intake.conversationLog);
                     return (
-                      <tr
-                        key={row.id}
-                        className={`border-b border-border last:border-0 hover:bg-muted/20 transition-colors cursor-pointer ${
-                          i % 2 === 0 ? "" : "bg-muted/10"
-                        }`}
-                        onClick={() => setSelectedIntake(row)}
-                      >
-                        <td className="px-4 py-3 font-medium text-foreground">
-                          {companyName || (
-                            <span className="text-muted-foreground italic">Unknown</span>
-                          )}
+                      <tr key={intake.id} className="border-b border-border hover:bg-muted/50 transition-colors">
+                        <td className="px-6 py-4 text-sm font-medium">{data.companyName || "Unknown"}</td>
+                        <td className="px-6 py-4 text-sm">{data.ownerName || "—"}</td>
+                        <td className="px-6 py-4 text-sm">{data.ownerEmail || "—"}</td>
+                        <td className="px-6 py-4 text-sm">{data.ownerPhone || "—"}</td>
+                        <td className="px-6 py-4 text-sm">
+                          <Badge
+                            variant={intake.status === "Completed" ? "default" : "secondary"}
+                            className={
+                              intake.status === "Completed"
+                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                                : "bg-amber-100 text-amber-800 border-amber-200"
+                            }
+                          >
+                            {intake.status}
+                          </Badge>
                         </td>
-                        <td className="px-4 py-3 text-foreground">
-                          {fullName(ownerFirstName, ownerLastName)}
-                        </td>
-                        <td className="px-4 py-3 text-foreground">
-                          {ownerEmail ? (
-                            <a
-                              href={`mailto:${ownerEmail}`}
-                              className="text-primary hover:underline"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {ownerEmail}
-                            </a>
+                        <td className="px-6 py-4 text-sm">{formatDate(intake.updatedAt)}</td>
+                        <td className="px-6 py-4 text-sm">
+                          {intake.synced === "true" ? (
+                            <span className="text-emerald-600 font-medium">Synced</span>
                           ) : (
                             <span className="text-muted-foreground">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-foreground">
-                          {ownerPhone || <span className="text-muted-foreground">—</span>}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge
-                            variant="outline"
-                            className={
-                              row.status === "Completed"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : "bg-amber-50 text-amber-700 border-amber-200"
-                            }
+                        <td className="px-6 py-4 text-sm">
+                          <button
+                            onClick={() => setSelectedIntake(intake)}
+                            className="text-blue-600 hover:underline flex items-center gap-1"
                           >
-                            {row.status}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-muted-foreground text-xs">
-                          {formatDate(row.updatedAt)}
-                        </td>
-                        <td className="px-4 py-3">
-                          {row.synced === "true" ? (
-                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs">
-                              Synced
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200 text-xs">
-                              Pending
-                            </Badge>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="gap-1 text-muted-foreground hover:text-foreground"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedIntake(row);
-                            }}
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
                             View
-                          </Button>
+                            <ExternalLink className="w-3 h-3" />
+                          </button>
                         </td>
                       </tr>
                     );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-
-        <p className="text-xs text-muted-foreground mt-4 text-center">
-          Showing {filtered.length} of {rows.length} submissions · Auto-refreshes every 30 s
-        </p>
-      </main>
+      </div>
 
       {selectedIntake && (
         <IntakeDetailModal
@@ -647,3 +410,5 @@ export default function Admin() {
     </div>
   );
 }
+
+import React from "react";
