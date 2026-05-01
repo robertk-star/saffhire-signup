@@ -139,18 +139,21 @@ function IntakeDetailModal({
       lastName: getFieldValue(intake, intake.admin1LastName, "admin1LastName"),
       email: getFieldValue(intake, intake.admin1Email, "admin1Email"),
       phone: getFieldValue(intake, intake.admin1Mobile, "admin1Mobile"),
+      jobTitle: getFieldValue(intake, null, "admin1JobTitle"),
     },
     {
       firstName: getFieldValue(intake, intake.admin2FirstName, "admin2FirstName"),
       lastName: getFieldValue(intake, intake.admin2LastName, "admin2LastName"),
       email: getFieldValue(intake, intake.admin2Email, "admin2Email"),
       phone: getFieldValue(intake, intake.admin2Mobile, "admin2Mobile"),
+      jobTitle: getFieldValue(intake, null, "admin2JobTitle"),
     },
     {
       firstName: getFieldValue(intake, intake.admin3FirstName, "admin3FirstName"),
       lastName: getFieldValue(intake, intake.admin3LastName, "admin3LastName"),
       email: getFieldValue(intake, intake.admin3Email, "admin3Email"),
       phone: getFieldValue(intake, intake.admin3Mobile, "admin3Mobile"),
+      jobTitle: getFieldValue(intake, null, "admin3JobTitle"),
     },
   ].filter((u) => u.firstName || u.lastName || u.email);
 
@@ -178,27 +181,40 @@ function IntakeDetailModal({
 
   // Extract all fields with fallback to JSON
   const companyName = getFieldValue(intake, intake.companyName, "companyName");
+  const dba = getFieldValue(intake, null, "dba");
   const ein = getFieldValue(intake, intake.ein, "ein");
+  const businessType = getFieldValue(intake, null, "businessType");
   const businessEntity = getFieldValue(intake, intake.businessEntity, "businessEntity");
+  const ownerName = getFieldValue(intake, null, "ownerName");
   const ownerFirstName = getFieldValue(intake, intake.ownerFirstName, "ownerFirstName");
   const ownerLastName = getFieldValue(intake, intake.ownerLastName, "ownerLastName");
   const ownerEmail = getFieldValue(intake, intake.ownerEmail, "ownerEmail");
   const ownerPhone = getFieldValue(intake, intake.ownerPhone, "ownerPhone");
+  const ownerPhoneExt = getFieldValue(intake, null, "ownerPhoneExt");
   const ownerTitle = getFieldValue(intake, intake.ownerTitle, "ownerTitle");
+  const contactName = getFieldValue(intake, null, "contactName");
   const contactFirstName = getFieldValue(intake, intake.contactFirstName, "contactFirstName");
   const contactLastName = getFieldValue(intake, intake.contactLastName, "contactLastName");
   const contactEmail = getFieldValue(intake, intake.contactEmail, "contactEmail");
+  const contactWorkPhone = getFieldValue(intake, null, "contactWorkPhone");
+  const contactWorkPhoneExt = getFieldValue(intake, null, "contactWorkPhoneExt");
+  const contactMobilePhone = getFieldValue(intake, null, "contactMobilePhone");
   const contactPhone = getFieldValue(intake, intake.contactPhone, "contactPhone");
   const contactTitle = getFieldValue(intake, intake.contactTitle, "contactTitle");
   const businessStreet = getFieldValue(intake, intake.businessStreet, "businessStreet");
+  const businessStreet2 = getFieldValue(intake, null, "businessStreet2");
   const businessCity = getFieldValue(intake, intake.businessCity, "businessCity");
   const businessState = getFieldValue(intake, intake.businessState, "businessState");
   const businessZip = getFieldValue(intake, intake.businessZip, "businessZip");
+  const businessCountry = getFieldValue(intake, null, "businessCountry");
   const billingSameAsBusiness = getFieldValue(intake, intake.billingSameAsBusiness, "billingSameAsBusiness");
   const billingStreet = getFieldValue(intake, intake.billingStreet, "billingStreet");
+  const billingStreet2 = getFieldValue(intake, null, "billingStreet2");
   const billingCity = getFieldValue(intake, intake.billingCity, "billingCity");
   const billingState = getFieldValue(intake, intake.billingState, "billingState");
   const billingZip = getFieldValue(intake, intake.billingZip, "billingZip");
+  const billingCountry = getFieldValue(intake, null, "billingCountry");
+  const billingAttention = getFieldValue(intake, null, "billingAttention");
 
   return (
     <Dialog open onOpenChange={onClose}>
@@ -222,26 +238,33 @@ function IntakeDetailModal({
         <div className="mt-4">
           <Section title="Client Information">
             <Field label="Company Name" value={companyName} />
+            <Field label="DBA" value={dba} />
             <Field label="EIN" value={ein} />
+            <Field label="Business Type" value={businessType} />
             <Field label="Entity Type" value={businessEntity} />
-            <Field label="Owner" value={fullName(ownerFirstName, ownerLastName)} />
+            <Field label="Owner" value={ownerName || fullName(ownerFirstName, ownerLastName)} />
             <Field label="Owner Email" value={ownerEmail} />
             <Field label="Owner Phone" value={ownerPhone} />
+            {ownerPhoneExt && <Field label="Owner Phone Ext" value={ownerPhoneExt} />}
             <Field label="Owner Title" value={ownerTitle} />
           </Section>
 
           <Section title="Contact Information">
-            <Field label="Contact" value={fullName(contactFirstName, contactLastName)} />
+            <Field label="Contact" value={contactName || fullName(contactFirstName, contactLastName)} />
             <Field label="Contact Email" value={contactEmail} />
-            <Field label="Contact Phone" value={contactPhone} />
+            <Field label="Contact Work Phone" value={contactWorkPhone} />
+            {contactWorkPhoneExt && <Field label="Contact Work Phone Ext" value={contactWorkPhoneExt} />}
+            <Field label="Contact Mobile" value={contactMobilePhone} />
             <Field label="Contact Title" value={contactTitle} />
           </Section>
 
           <Section title="Business Address">
             <Field label="Street" value={businessStreet} />
+            {businessStreet2 && <Field label="Street 2" value={businessStreet2} />}
             <Field label="City" value={businessCity} />
             <Field label="State" value={businessState} />
             <Field label="ZIP" value={businessZip} />
+            {businessCountry && <Field label="Country" value={businessCountry} />}
           </Section>
 
           <Section title="Billing Address">
@@ -249,9 +272,12 @@ function IntakeDetailModal({
             {billingSameAsBusiness?.toLowerCase() !== "yes" && billingSameAsBusiness?.toLowerCase() !== "true" ? (
               <>
                 <Field label="Street" value={billingStreet} />
+                {billingStreet2 && <Field label="Street 2" value={billingStreet2} />}
                 <Field label="City" value={billingCity} />
                 <Field label="State" value={billingState} />
                 <Field label="ZIP" value={billingZip} />
+                {billingCountry && <Field label="Country" value={billingCountry} />}
+                {billingAttention && <Field label="Attention" value={billingAttention} />}
               </>
             ) : null}
           </Section>
@@ -263,6 +289,7 @@ function IntakeDetailModal({
                   <p className="font-medium">
                     {fullName(u.firstName, u.lastName)}
                   </p>
+                  {u.jobTitle && <p className="text-muted-foreground text-xs">{u.jobTitle}</p>}
                   <p className="text-muted-foreground text-xs mt-0.5">
                     {u.email} {u.phone ? `· ${u.phone}` : ""}
                   </p>
