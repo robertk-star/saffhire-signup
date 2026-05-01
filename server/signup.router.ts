@@ -229,4 +229,29 @@ export const signupRouter = router({
         throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Sync failed" });
       }
     }),
+
+  // ─── Delete Intake (admin only) ──────────────────────────────────────────────────
+  deleteIntake: protectedProcedure.use(({ ctx, next }) => {
+    if (ctx.user.role !== "admin") {
+      throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
+    }
+    return next({ ctx });
+  })
+    .input(z.object({ id: z.number() }))
+    .mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+
+      try {
+        const result = await db
+          .delete(signupIntakes)
+          .where(eqOp(signupIntakes.id, input.id));
+
+        console.log(`[Delete] Intake ${input.id} deleted`);
+        return { deleted: true };
+      } catch (err) {
+        console.error("[Delete] Error:", err);
+        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to delete intake" });
+      }
+    }),
 });

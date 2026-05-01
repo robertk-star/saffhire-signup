@@ -1,3 +1,4 @@
+import React from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users } from "lucide-react";
+import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users, Trash2 } from "lucide-react";
 import { getLoginUrl } from "@/const";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -68,11 +69,14 @@ function parseConversationLog(logJson: string | null): Record<string, any> {
 function IntakeDetailModal({
   intake,
   onClose,
+  onDelete,
 }: {
   intake: IntakeRow;
   onClose: () => void;
+  onDelete: (id: number) => void;
 }) {
   const data = parseConversationLog(intake.conversationLog);
+  const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   // Extract admin users from adminUsers array
   const adminUsers = Array.isArray(data.adminUsers) ? data.adminUsers : [];
@@ -185,6 +189,40 @@ function IntakeDetailModal({
             <div>Created: {formatDate(intake.createdAt)}</div>
             <div>Last updated: {formatDate(intake.updatedAt)}</div>
           </div>
+
+          {!showDeleteConfirm && (
+            <div className="mt-6 flex gap-2 justify-end">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete Record
+              </Button>
+            </div>
+          )}
+
+          {showDeleteConfirm && (
+            <div className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded">
+              <p className="text-sm font-semibold mb-3">Are you sure you want to delete this record? This cannot be undone.</p>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteConfirm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    onDelete(intake.id);
+                    onClose();
+                  }}
+                >
+                  Confirm Delete
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
@@ -202,6 +240,9 @@ export default function Admin() {
   const { data: intakesData, isLoading, refetch } = trpc.signup.listIntakes.useQuery({});
   const intakes = (Array.isArray(intakesData) ? intakesData : intakesData?.rows || []) as IntakeRow[];
   const syncMutation = trpc.signup.manualSyncToSheets.useMutation({
+    onSuccess: () => refetch(),
+  });
+  const deleteMutation = trpc.signup.deleteIntake.useMutation({
     onSuccess: () => refetch(),
   });
 
@@ -405,10 +446,11 @@ export default function Admin() {
         <IntakeDetailModal
           intake={selectedIntake}
           onClose={() => setSelectedIntake(null)}
+          onDelete={(id) => {
+            deleteMutation.mutate({ id });
+          }}
         />
       )}
     </div>
   );
 }
-
-import React from "react";
