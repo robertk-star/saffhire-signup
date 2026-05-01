@@ -107,19 +107,30 @@ function IntakeDetailModal({
     <Dialog open onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[95vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <span>{data.companyName || "Unnamed Company"}</span>
-            <Badge
-              variant={intake.status === "Completed" ? "default" : "secondary"}
-              className={
-                intake.status === "Completed"
-                  ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                  : "bg-amber-100 text-amber-800 border-amber-200"
-              }
-            >
-              {intake.status}
-            </Badge>
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-3">
+              <span>{data.companyName || "Unnamed Company"}</span>
+              <Badge
+                variant={intake.status === "Completed" ? "default" : "secondary"}
+                className={
+                  intake.status === "Completed"
+                    ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                    : "bg-amber-100 text-amber-800 border-amber-200"
+                }
+              >
+                {intake.status}
+              </Badge>
+            </DialogTitle>
+            {!showDeleteConfirm && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+              >
+                Delete
+              </Button>
+            )}
+          </div>
         </DialogHeader>
 
         <div className="mt-4">
@@ -189,17 +200,6 @@ function IntakeDetailModal({
             <div>Created: {formatDate(intake.createdAt)}</div>
             <div>Last updated: {formatDate(intake.updatedAt)}</div>
           </div>
-
-          {!showDeleteConfirm && (
-            <div className="mt-6 flex gap-2 justify-end">
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Delete Record
-              </Button>
-            </div>
-          )}
 
           {showDeleteConfirm && (
             <div className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded">
