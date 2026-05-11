@@ -19,7 +19,8 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users, Trash2, Download } from "lucide-react";
 import { getLoginUrl } from "@/const";
-import html2pdf from "html2pdf.js";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -127,17 +128,36 @@ function IntakeDetailModal({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
+                  onClick={async () => {
                     const element = document.getElementById("intake-pdf-content");
                     if (element) {
-                      const opt = {
-                        margin: 10,
-                        filename: `${data.companyName || "submission"}.pdf`,
-                        image: { type: "jpeg" as const, quality: 0.98 },
-                        html2canvas: { scale: 2 },
-                        jsPDF: { orientation: "portrait" as const, unit: "mm" as const, format: "a4" },
-                      };
-                      html2pdf().set(opt).from(element).save() as any;
+                      try {
+                        const canvas = await html2canvas(element, { scale: 2 });
+                        const imgData = canvas.toDataURL("image/png");
+                        const pdf = new jsPDF({
+                          orientation: "portrait",
+                          unit: "mm",
+                          format: "a4",
+                        });
+                        const imgWidth = 190;
+                        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                        let heightLeft = imgHeight;
+                        let position = 0;
+
+                        pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+                        heightLeft -= 277;
+
+                        while (heightLeft >= 0) {
+                          position = heightLeft - imgHeight;
+                          pdf.addPage();
+                          pdf.addImage(imgData, "PNG", 10, position, imgWidth, imgHeight);
+                          heightLeft -= 277;
+                        }
+
+                        pdf.save(`${data.companyName || "submission"}.pdf`);
+                      } catch (error) {
+                        console.error("PDF generation failed:", error);
+                      }
                     }
                   }}
                 >
