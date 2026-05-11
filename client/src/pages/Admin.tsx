@@ -17,8 +17,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users, Trash2 } from "lucide-react";
+import { Loader2, Search, RefreshCw, ChevronDown, ChevronUp, ExternalLink, Users, Trash2, Download } from "lucide-react";
 import { getLoginUrl } from "@/const";
+import html2pdf from "html2pdf.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -122,18 +123,40 @@ function IntakeDetailModal({
               </Badge>
             </DialogTitle>
             {!showDeleteConfirm && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-              >
-                Delete
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const element = document.getElementById("intake-pdf-content");
+                    if (element) {
+                      const opt = {
+                        margin: 10,
+                        filename: `${data.companyName || "submission"}.pdf`,
+                        image: { type: "jpeg" as const, quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { orientation: "portrait" as const, unit: "mm" as const, format: "a4" },
+                      };
+                      html2pdf().set(opt).from(element).save() as any;
+                    }
+                  }}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  PDF
+                </Button>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteConfirm(true)}
+                >
+                  Delete
+                </Button>
+              </div>
             )}
           </div>
         </DialogHeader>
 
-        <div className="mt-4">
+        <div className="mt-4" id="intake-pdf-content">
           <Section title="Client Information">
             <Field label="Company Name" value={data.companyName} />
             {data.dba && <Field label="DBA" value={data.dba} />}
@@ -236,6 +259,7 @@ export default function Admin() {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
   const [selectedIntake, setSelectedIntake] = React.useState<IntakeRow | null>(null);
+  const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
   const { data: intakesData, isLoading, refetch } = trpc.signup.listIntakes.useQuery({});
   const intakes = (Array.isArray(intakesData) ? intakesData : intakesData?.rows || []) as IntakeRow[];
@@ -279,6 +303,13 @@ export default function Admin() {
       (data.ownerEmail && data.ownerEmail.toLowerCase().includes(searchLower)) ||
       (data.ein && data.ein.toLowerCase().includes(searchLower));
     return matchesStatus && matchesSearch;
+  });
+
+  // Sort by date
+  const sorted = [...filtered].sort((a, b) => {
+    const aDate = new Date(a.updatedAt).getTime();
+    const bDate = new Date(b.updatedAt).getTime();
+    return sortDir === "desc" ? bDate - aDate : aDate - bDate;
   });
 
   const stats = {
@@ -376,7 +407,19 @@ export default function Admin() {
                   <th className="px-6 py-3 text-left text-sm font-semibold">Email</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Phone</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Status</th>
-                  <th className="px-6 py-3 text-left text-sm font-semibold">Last Updated</th>
+                  <th
+                    className="px-6 py-3 text-left text-sm font-semibold cursor-pointer hover:bg-muted/70 transition-colors"
+                    onClick={() => setSortDir(sortDir === "desc" ? "asc" : "desc")}
+                  >
+                    <div className="flex items-center gap-2">
+                      Last Updated
+                      {sortDir === "desc" ? (
+                        <ChevronDown className="w-4 h-4" />
+                      ) : (
+                        <ChevronUp className="w-4 h-4" />
+                      )}
+                    </div>
+                  </th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Sheets Sync</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Action</th>
                 </tr>
@@ -395,7 +438,7 @@ export default function Admin() {
                     </td>
                   </tr>
                 ) : (
-                  filtered.map((intake: IntakeRow) => {
+                  sorted.map((intake: IntakeRow) => {
                     const data = parseConversationLog(intake.conversationLog);
                     return (
                       <tr key={intake.id} className="border-b border-border hover:bg-muted/50 transition-colors">
