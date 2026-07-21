@@ -1,37 +1,39 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import {
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+  varchar,
+} from "drizzle-orm/pg-core";
 
-export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
+export const userRole = pgEnum("user_role", ["user", "admin"]);
+export const intakeStatus = pgEnum("intake_status", ["In Progress", "Completed"]);
+export const syncStatus = pgEnum("sync_status", ["true", "false"]);
+
+export const users = pgTable("users", {
+  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  role: userRole("role").default("user").notNull(),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
+  lastSignedIn: timestamp("lastSignedIn", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// ─── Intake Submissions ───────────────────────────────────────────────────────
-
-export const signupIntakes = mysqlTable("signupIntakes", {
-  id: int("id").autoincrement().primaryKey(),
-
-  // Status
-  status: mysqlEnum("status", ["In Progress", "Completed"]).default("In Progress").notNull(),
-
-  // Raw conversation transcript (JSON) — stores ALL form data
+export const signupIntakes = pgTable("signupIntakes", {
+  id: integer("id").generatedByDefaultAsIdentity().primaryKey(),
+  status: intakeStatus("status").default("In Progress").notNull(),
   conversationLog: text("conversationLog"),
-
-  // Google Sheets sync tracking
-  synced: mysqlEnum("synced", ["true", "false"]).default("false").notNull(),
-  syncedAt: timestamp("syncedAt"),
-
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  synced: syncStatus("synced").default("false").notNull(),
+  syncedAt: timestamp("syncedAt", { withTimezone: true }),
+  createdAt: timestamp("createdAt", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt", { withTimezone: true }).defaultNow().notNull(),
 });
 
 export type SignupIntake = typeof signupIntakes.$inferSelect;
