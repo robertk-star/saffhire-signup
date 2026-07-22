@@ -67,19 +67,19 @@ export const signupRouter = router({
 
       // 1. Save to database - throw error if insert fails
       try {
-        // Store all data as JSON in conversationLog to avoid schema mismatch
-        // Only insert into columns we know exist in the database
         const fullData = JSON.stringify(input);
         await db.insert(signupIntakes).values({
           status: "Completed",
           conversationLog: fullData,
         });
         console.log("[Intake] Saved to database.");
-      } catch (err) {
+      } catch (err: any) {
         console.error("[Intake] DB insert failed:", err);
+        // Surface the full error so we can see the real Postgres message
+        const detail = err?.cause?.message || err?.detail || err?.message || JSON.stringify(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
-          message: `Failed to save intake: ${err instanceof Error ? err.message : "Unknown error"}`,
+          message: `Failed to save intake: ${detail}`,
         });
       }
 
