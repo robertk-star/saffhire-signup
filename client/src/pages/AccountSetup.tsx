@@ -74,13 +74,10 @@ interface FormData {
   admin3Mobile: string;
   admin3Email: string;
   admin3Status: string;
-
-
 }
 
 const initialFormData: FormData = {
   companyName: "",
-
   dba: "",
   ein: "",
   businessType: "",
@@ -125,7 +122,6 @@ const initialFormData: FormData = {
   admin3Mobile: "",
   admin3Email: "",
   admin3Status: "",
-
 };
 
 export default function AccountSetup() {
@@ -225,66 +221,82 @@ export default function AccountSetup() {
   };
 
   const handleSubmit = async () => {
-    submitIntake.mutate({
-      companyName: formData.companyName,
-      dba: formData.dba,
-      ein: formData.ein,
-      businessType: formData.businessType,
-      businessEntity: formData.businessEntity,
-      ownerName: formData.ownerName,
-      ownerFirstName: formData.ownerName.split(" ")[0] || "",
-      ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || formData.ownerName.split(" ")[0] || "",
-      ownerEmail: formData.ownerEmail,
-      ownerPhone: formData.ownerPhone,
-      ownerPhoneExt: formData.ownerPhoneExt,
-      ownerTitle: "",
-      contactName: formData.contactName,
-      contactFirstName: formData.contactName.split(" ")[0] || "",
-      contactLastName: formData.contactName.split(" ").slice(1).join(" ") || formData.contactName.split(" ")[0] || "",
-      contactEmail: formData.contactEmail,
-      contactWorkPhone: formData.contactWorkPhone,
-      contactWorkPhoneExt: formData.contactWorkPhoneExt,
-      contactMobilePhone: formData.contactMobilePhone,
-      contactPhone: formData.contactWorkPhone,
-      contactTitle: "",
-      businessStreet: formData.businessStreet,
-      businessStreet2: formData.businessStreet2,
-      businessCity: formData.businessCity,
-      businessState: formData.businessState,
-      businessZip: formData.businessZip,
-      businessCountry: formData.businessCountry,
-      billingSameAsBusiness: formData.billingSameAsBusiness ? "true" : "false",
-      billingStreet: formData.billingStreet,
-      billingStreet2: formData.billingStreet2,
-      billingCity: formData.billingCity,
-      billingState: formData.billingState,
-      billingZip: formData.billingZip,
-      billingCountry: formData.billingCountry,
-      billingAttention: formData.billingAttention,
-      adminUsers: [
-        {
-          firstName: formData.admin1FirstName,
-          lastName: formData.admin1LastName,
-          email: formData.admin1Email,
-          phone: formData.admin1Mobile,
-          jobTitle: formData.admin1JobTitle,
-        },
-        ...(formData.admin2FirstName ? [{
-          firstName: formData.admin2FirstName,
-          lastName: formData.admin2LastName,
-          email: formData.admin2Email,
-          phone: formData.admin2Mobile,
-          jobTitle: formData.admin2JobTitle,
-        }] : []),
-        ...(formData.admin3FirstName ? [{
-          firstName: formData.admin3FirstName,
-          lastName: formData.admin3LastName,
-          email: formData.admin3Email,
-          phone: formData.admin3Mobile,
-          jobTitle: formData.admin3JobTitle,
-        }] : []),
-      ],
-    });
+    try {
+      const payload = {
+        companyName: formData.companyName,
+        dba: formData.dba,
+        ein: formData.ein,
+        businessType: formData.businessType,
+        businessEntity: formData.businessEntity,
+        ownerName: formData.ownerName,
+        ownerFirstName: formData.ownerName.split(" ")[0] || "",
+        ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || formData.ownerName.split(" ")[0] || "",
+        ownerEmail: formData.ownerEmail,
+        ownerPhone: formData.ownerPhone,
+        ownerPhoneExt: formData.ownerPhoneExt,
+        ownerTitle: "",
+        contactName: formData.contactName,
+        contactFirstName: formData.contactName.split(" ")[0] || "",
+        contactLastName: formData.contactName.split(" ").slice(1).join(" ") || formData.contactName.split(" ")[0] || "",
+        contactEmail: formData.contactEmail,
+        contactWorkPhone: formData.contactWorkPhone,
+        contactWorkPhoneExt: formData.contactWorkPhoneExt,
+        contactMobilePhone: formData.contactMobilePhone,
+        contactPhone: formData.contactWorkPhone,
+        contactTitle: "",
+        businessStreet: formData.businessStreet,
+        businessStreet2: formData.businessStreet2,
+        businessCity: formData.businessCity,
+        businessState: formData.businessState,
+        businessZip: formData.businessZip,
+        businessCountry: formData.businessCountry,
+        billingSameAsBusiness: formData.billingSameAsBusiness ? "true" : "false",
+        billingStreet: formData.billingStreet,
+        billingStreet2: formData.billingStreet2,
+        billingCity: formData.billingCity,
+        billingState: formData.billingState,
+        billingZip: formData.billingZip,
+        billingCountry: formData.billingCountry,
+        billingAttention: formData.billingAttention,
+        adminUsers: [
+          {
+            firstName: formData.admin1FirstName,
+            lastName: formData.admin1LastName,
+            email: formData.admin1Email,
+            phone: formData.admin1Mobile,
+            jobTitle: formData.admin1JobTitle,
+          },
+          ...(formData.admin2FirstName
+            ? [
+                {
+                  firstName: formData.admin2FirstName,
+                  lastName: formData.admin2LastName,
+                  email: formData.admin2Email,
+                  phone: formData.admin2Mobile,
+                  jobTitle: formData.admin2JobTitle,
+                },
+              ]
+            : []),
+          ...(formData.admin3FirstName
+            ? [
+                {
+                  firstName: formData.admin3FirstName,
+                  lastName: formData.admin3LastName,
+                  email: formData.admin3Email,
+                  phone: formData.admin3Mobile,
+                  jobTitle: formData.admin3JobTitle,
+                },
+              ]
+            : []),
+        ],
+        conversationLog: JSON.stringify(formData),
+      };
+
+      submitIntake.mutate(payload);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to prepare form data");
+    }
   };
 
   const progressPercentage = showReview ? 100 : ((currentStep + 1) / STEPS.length) * 100;
@@ -316,11 +328,7 @@ export default function AccountSetup() {
       <div className="border-b border-border bg-card">
         <div className="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
           <img src="/manus-storage/SaffhireLogoShirtStyle_300428e9.webp" alt="SaffHire" className="h-12 w-auto" />
-          <Button
-            variant="outline"
-            size="sm"
-            asChild
-          >
+          <Button variant="outline" size="sm" asChild>
             <a href="https://www.saffhire.com" target="_blank" rel="noopener noreferrer">
               Back to Website
             </a>
@@ -384,6 +392,7 @@ interface FormStepProps {
 function FormStep({ step, formData, errors, onChange }: FormStepProps) {
   // Create a stable sessionId using nanoid if not already created
   const [sessionId] = useState(() => nanoid());
+
   if (step === 0) {
     return (
       <div className="space-y-6">
@@ -717,8 +726,6 @@ function FormStep({ step, formData, errors, onChange }: FormStepProps) {
     );
   }
 
-
-
   return null;
 }
 
@@ -838,6 +845,3 @@ function ReviewScreen({ formData }: { formData: FormData }) {
     </div>
   );
 }
-
-
-
