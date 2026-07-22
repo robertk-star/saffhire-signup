@@ -11,6 +11,21 @@ import { serveStatic, setupVite } from "./vite";
 
 const app = express();
 
+// Allow the Vercel frontend to call this API
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 // Configure body parser with larger size limit for file uploads
 app.use(express.json({ limit: "50mb" }));
 app.use(express.urlencoded({ limit: "50mb", extended: true }));
@@ -27,11 +42,11 @@ app.use(
   })
 );
 
-// development mode uses Vite, production mode uses static files
+const preferredPort = parseInt(process.env.PORT || "3000");
+
 if (process.env.NODE_ENV === "development") {
   const server = createServer(app);
   setupVite(app, server).then(() => {
-    const preferredPort = parseInt(process.env.PORT || "3000");
     findAvailablePort(preferredPort).then((port) => {
       if (port !== preferredPort) {
         console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
@@ -42,11 +57,14 @@ if (process.env.NODE_ENV === "development") {
     });
   });
 } else {
-  // Production / Vercel
+  // Production (Railway)
   serveStatic(app);
+  const server = createServer(app);
+  server.listen(preferredPort, () => {
+    console.log(`Server running on port ${preferredPort}`);
+  });
 }
 
-// Helper for local development
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise((resolve) => {
     const server = net.createServer();
@@ -66,5 +84,4 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 
-// Export the Express app for Vercel
 export default app;
