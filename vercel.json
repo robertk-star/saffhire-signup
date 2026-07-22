@@ -3,7 +3,7 @@
   "outputDirectory": "dist/public",
   "functions": {
     "api/index.ts": {
-      "includeFiles": "server/**",
+      "includeFiles": "{server/**,drizzle/**,shared/**}",
       "maxDuration": 30
     }
   },
