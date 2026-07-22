@@ -65,7 +65,7 @@ export const signupRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
-      // 1. Save to database - throw error if insert fails
+      // 1. Save to database
       try {
         const fullData = JSON.stringify(input);
         await db.insert(signupIntakes).values({
@@ -75,7 +75,6 @@ export const signupRouter = router({
         console.log("[Intake] Saved to database.");
       } catch (err: any) {
         console.error("[Intake] DB insert failed:", err);
-        // Surface the full error so we can see the real Postgres message
         const detail = err?.cause?.message || err?.detail || err?.message || JSON.stringify(err);
         throw new TRPCError({
           code: "INTERNAL_SERVER_ERROR",
@@ -83,9 +82,7 @@ export const signupRouter = router({
         });
       }
 
-      // 2. Data is now in the database; scheduled task will sync to Google Sheets hourly
-
-      // 3. Create or update contact in GoHighLevel with Intake tag
+      // 2. Create or update contact in GoHighLevel
       try {
         const contactId = await upsertContactWithIntakeTag({
           firstName: input.ownerFirstName,
@@ -101,13 +98,14 @@ export const signupRouter = router({
         console.error("[Intake] GHL sync failed:", err);
       }
 
-      // 4. Notify owner
+      // 3. Notify owner with PDF attachment
       try {
         await notifyOwner({
           title: `New Credentialing Application: ${input.companyName || "Unnamed"}`,
-          content: `A new credentialing application has been submitted. Check the admin dashboard for details.`,
+          content: `A new credentialing application has been submitted by ${input.ownerName || input.contactName || "someone"}. A PDF of the full application is attached.`,
+          formData: input,
         });
-        console.log("[Intake] Owner notified.");
+        console.log("[Intake] Owner notified with PDF.");
       } catch (err) {
         console.error("[Intake] Owner notification failed:", err);
       }
@@ -117,7 +115,6 @@ export const signupRouter = router({
 
   // ─── List Intakes (admin only) ────────────────────────────────────────────────────
   listIntakes: protectedProcedure.use(({ ctx, next }) => {
-    // Only the owner (admin role) can list all intake submissions
     if (ctx.user.role !== "admin") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
     }
@@ -166,7 +163,6 @@ export const signupRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       try {
-        // Query unsynced completed submissions
         const unsynced = await db
           .select()
           .from(signupIntakes)
@@ -181,7 +177,6 @@ export const signupRouter = router({
 
         for (const row of unsynced) {
           try {
-            // Parse conversationLog JSON to get all form data
             let formData: Record<string, any> = {};
             if (row.conversationLog) {
               try {
@@ -198,7 +193,6 @@ export const signupRouter = router({
               submittedAt: row.createdAt ? row.createdAt.toISOString() : new Date().toISOString(),
             };
 
-            // POST with manual redirect handling
             const postResponse = await fetch(APPS_SCRIPT_URL, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -207,16 +201,12 @@ export const signupRouter = router({
             });
 
             if (postResponse.ok) {
-              // Mark as synced
               await db
                 .update(signupIntakes)
                 .set({ synced: "true", syncedAt: new Date() })
                 .where(eqOp(signupIntakes.id, row.id));
 
               syncedCount++;
-              console.log(`[Sync] Row ${row.id} synced to Google Sheets`);
-            } else {
-              console.error(`[Sync] Failed to sync row ${row.id}: ${postResponse.status}`);
             }
           } catch (err) {
             console.error(`[Sync] Error syncing row ${row.id}:`, err);
@@ -243,11 +233,10 @@ export const signupRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       try {
-        const result = await db
+        await db
           .delete(signupIntakes)
           .where(eqOp(signupIntakes.id, input.id));
 
-        console.log(`[Delete] Intake ${input.id} deleted`);
         return { deleted: true };
       } catch (err) {
         console.error("[Delete] Error:", err);
