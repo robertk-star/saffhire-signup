@@ -1,16 +1,6 @@
 {
-  "buildCommand": "pnpm install --no-frozen-lockfile && pnpm build",
+  "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist/public",
-  "functions": {
-    "api/index.ts": {
-      "includeFiles": "{server/**,drizzle/**,shared/**}",
-      "maxDuration": 30
-    }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api"
-    }
-  ]
+  "installCommand": "npm install",
+  "framework": null
 }
