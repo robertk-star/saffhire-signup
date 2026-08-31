@@ -3,6 +3,7 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, router } from "./_core/trpc";
 import { signupRouter } from "./signup.router";
+import { agreementRouter } from "./agreement.router";
 import { usersRouter } from "./users.router";
 
 export const appRouter = router({
@@ -18,6 +19,7 @@ export const appRouter = router({
     }),
   }),
   signup: signupRouter,
+  agreement: agreementRouter,
   users: usersRouter,
 });
 
