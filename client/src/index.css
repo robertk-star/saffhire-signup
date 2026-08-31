@@ -44,40 +44,44 @@
 }
 
 :root {
-  /* Saffron gold primary */
-  --primary: oklch(0.68 0.15 72);
-  --primary-foreground: oklch(0.98 0.01 72);
-  --sidebar-primary: oklch(0.68 0.15 72);
-  --sidebar-primary-foreground: oklch(0.98 0.01 72);
-  --chart-1: oklch(0.68 0.15 72);
-  --chart-2: oklch(0.75 0.12 80);
-  --chart-3: oklch(0.55 0.12 72);
-  --chart-4: oklch(0.45 0.10 72);
-  --chart-5: oklch(0.35 0.08 72);
-  --radius: 0.65rem;
-  --background: oklch(0.985 0.003 75);
-  --foreground: oklch(0.18 0.015 60);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.015 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.015 60);
-  --secondary: oklch(0.96 0.008 75);
-  --secondary-foreground: oklch(0.3 0.015 60);
-  --muted: oklch(0.96 0.005 75);
-  --muted-foreground: oklch(0.52 0.01 60);
-  --accent: oklch(0.94 0.04 75);
-  --accent-foreground: oklch(0.3 0.06 72);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.9 0.008 75);
-  --input: oklch(0.9 0.008 75);
-  --ring: oklch(0.68 0.15 72);
-  --sidebar: oklch(0.985 0.003 75);
-  --sidebar-foreground: oklch(0.18 0.015 60);
-  --sidebar-accent: oklch(0.94 0.04 75);
-  --sidebar-accent-foreground: oklch(0.3 0.06 72);
-  --sidebar-border: oklch(0.9 0.008 75);
-  --sidebar-ring: oklch(0.68 0.15 72);
+  /* SaffHire brand: navy + lime green from saffhire.com */
+  --saffhire-navy: #0b1c33;
+  --saffhire-navy-deep: #071427;
+  --saffhire-green: #00c853;
+  --saffhire-green-hover: #00b34a;
+  --primary: #00c853;
+  --primary-foreground: #ffffff;
+  --sidebar-primary: #00c853;
+  --sidebar-primary-foreground: #ffffff;
+  --chart-1: #00c853;
+  --chart-2: #0b1c33;
+  --chart-3: #1a3a5c;
+  --chart-4: #4ade80;
+  --chart-5: #94a3b8;
+  --radius: 0.375rem;
+  --background: #f4f7fb;
+  --foreground: #0b1c33;
+  --card: #ffffff;
+  --card-foreground: #0b1c33;
+  --popover: #ffffff;
+  --popover-foreground: #0b1c33;
+  --secondary: #e8eef5;
+  --secondary-foreground: #0b1c33;
+  --muted: #eef3f8;
+  --muted-foreground: #5b6b7c;
+  --accent: #e8f9ef;
+  --accent-foreground: #065f32;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #d7e0ea;
+  --input: #d7e0ea;
+  --ring: #00c853;
+  --sidebar: #0b1c33;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #122844;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1a3a5c;
+  --sidebar-ring: #00c853;
 }
 
 .dark {
@@ -122,6 +126,7 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
   .font-serif {
     font-family: 'Playfair Display', Georgia, serif;
@@ -140,24 +145,11 @@
 }
 
 @layer components {
-  /**
-   * Custom container utility that centers content and adds responsive padding.
-   *
-   * This overrides Tailwind's default container behavior to:
-   * - Auto-center content (mx-auto)
-   * - Add responsive horizontal padding
-   * - Set max-width for large screens
-   *
-   * Usage: <div className="container">...</div>
-   *
-   * For custom widths, use max-w-* utilities directly:
-   * <div className="max-w-6xl mx-auto px-4">...</div>
-   */
   .container {
     width: 100%;
     margin-left: auto;
     margin-right: auto;
-    padding-left: 1rem; /* 16px - mobile padding */
+    padding-left: 1rem;
     padding-right: 1rem;
   }
 
@@ -168,21 +160,20 @@
 
   @media (min-width: 640px) {
     .container {
-      padding-left: 1.5rem; /* 24px - tablet padding */
+      padding-left: 1.5rem;
       padding-right: 1.5rem;
     }
   }
 
   @media (min-width: 1024px) {
     .container {
-      padding-left: 2rem; /* 32px - desktop padding */
+      padding-left: 2rem;
       padding-right: 2rem;
-      max-width: 1280px; /* Standard content width */
+      max-width: 1280px;
     }
   }
 }
 
-/* ── Custom animations ──────────────────────────────────────────────────── */
 @keyframes bubble-in {
   from { opacity: 0; transform: translateY(10px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -206,9 +197,9 @@
 .progress-shimmer {
   background: linear-gradient(
     90deg,
-    oklch(0.68 0.15 72) 0%,
-    oklch(0.80 0.18 80) 50%,
-    oklch(0.68 0.15 72) 100%
+    #00c853 0%,
+    #4ade80 50%,
+    #00c853 100%
   );
   background-size: 200% auto;
   animation: progress-shimmer 2s linear infinite;
