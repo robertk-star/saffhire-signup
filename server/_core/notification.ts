@@ -1,19 +1,16 @@
 import { Resend } from "resend";
 import { generateIntakePdf } from "./generatePdf";
+import { SAFFHIRE_NOTIFY_EMAIL } from "../../shared/const";
 
 export type NotificationPayload = {
   title: string;
   content: string;
   formData?: any;
+  to?: string[];
+  extraAttachments?: Array<{ filename: string; content: Buffer }>;
 };
 
-/**
- * Sends an email notification with a PDF attachment of the form data
- * to robertk@saffhire.com via Resend.
- */
-export async function notifyOwner(
-  payload: NotificationPayload
-): Promise<boolean> {
+export async function notifyOwner(payload: NotificationPayload): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
 
   if (!apiKey) {
@@ -23,15 +20,13 @@ export async function notifyOwner(
 
   try {
     const resend = new Resend(apiKey);
+    const attachments: any[] = [];
 
-    // Generate PDF if form data is provided
-    let attachments: any[] = [];
     if (payload.formData) {
       try {
         const pdfBuffer = generateIntakePdf(payload.formData);
         const companyName = payload.formData.companyName || "Application";
         const safeName = companyName.replace(/[^a-z0-9]/gi, "_").substring(0, 40);
-
         attachments.push({
           filename: `SaffHire_Application_${safeName}.pdf`,
           content: pdfBuffer,
@@ -41,17 +36,22 @@ export async function notifyOwner(
       }
     }
 
+    for (const extra of payload.extraAttachments || []) {
+      attachments.push(extra);
+    }
+
+    const recipients = (payload.to || [SAFFHIRE_NOTIFY_EMAIL]).filter(Boolean);
+
     const { error } = await resend.emails.send({
       from: "SaffHire Signup <onboarding@resend.dev>",
-      to: ["robertk@saffhire.com"],
+      to: recipients,
       subject: payload.title,
       html: `
         <h2>${payload.title}</h2>
         <p>${payload.content}</p>
-        <p>A PDF of the full application is attached to this email.</p>
         <hr />
         <p style="color:#666;font-size:14px;">
-          This email was sent automatically when a new credentialing application was submitted.
+          This email was sent automatically by SaffHire account setup.
         </p>
       `,
       attachments,
@@ -62,7 +62,7 @@ export async function notifyOwner(
       return false;
     }
 
-    console.log("[Notification] Email with PDF sent successfully");
+    console.log("[Notification] Email sent to", recipients.join(", "));
     return true;
   } catch (err) {
     console.warn("[Notification] Failed to send email:", err);
