@@ -9,7 +9,6 @@ export default function Login() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // If already logged in, redirect to admin dashboard
   useEffect(() => {
     if (user && !loading) {
       setLocation("/admin");
@@ -27,10 +26,9 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <img
-            src="/manus-storage/SaffhireLogoShirtStyle_6539361a.webp"
+            src="https://saffhire.com/images/saffhire-logo.png"
             alt="SaffHire"
             className="h-12 w-auto object-contain mx-auto mb-4"
           />
@@ -40,7 +38,6 @@ export default function Login() {
           </p>
         </div>
 
-        {/* Login Card */}
         <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
           <div className="space-y-6">
             <div className="text-center">
@@ -49,14 +46,8 @@ export default function Login() {
               </p>
             </div>
 
-            <Button
-              asChild
-              size="lg"
-              className="w-full"
-            >
-              <a href={getLoginUrl()}>
-                Sign in with SaffHire
-              </a>
+            <Button asChild size="lg" className="w-full">
+              <a href={getLoginUrl()}>Sign in with SaffHire</a>
             </Button>
 
             <div className="relative">
@@ -64,9 +55,7 @@ export default function Login() {
                 <div className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="px-2 bg-card text-muted-foreground">
-                  Secure Login
-                </span>
+                <span className="px-2 bg-card text-muted-foreground">Secure Login</span>
               </div>
             </div>
 
@@ -77,7 +66,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Footer */}
         <div className="text-center mt-8">
           <p className="text-xs text-muted-foreground">
             © 2026 SaffHire Background Screening. All rights reserved.
