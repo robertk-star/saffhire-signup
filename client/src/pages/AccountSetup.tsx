@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { nanoid } from "nanoid";
 import { FormStep, ReviewScreen } from "./formSteps";
 
 const STEPS = [
