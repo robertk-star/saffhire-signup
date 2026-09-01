@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { FormStep, ReviewScreen } from "./formSteps";
+import ClientAgreement from "./ClientAgreement";
 
 const STEPS = [
   { id: 0, title: "Client Information", label: "Client Info" },
@@ -10,7 +11,6 @@ const STEPS = [
   { id: 2, title: "Business Address", label: "Business Address" },
   { id: 3, title: "Billing Address", label: "Billing Address" },
   { id: 4, title: "Admin Users", label: "Admin Users" },
-  { id: 5, title: "Service Agreement", label: "Agreement" },
 ];
 
 export interface FormData {
@@ -59,13 +59,6 @@ export interface FormData {
   admin3Mobile: string;
   admin3Email: string;
   admin3Status: string;
-  agreedToServiceAgreement: boolean;
-  acknowledgedFcraRights: boolean;
-  acknowledgedUserNotice: boolean;
-  signerName: string;
-  signerTitle: string;
-  signatureDataUrl: string;
-  signedAt: string;
 }
 
 const initialFormData: FormData = {
@@ -114,26 +107,19 @@ const initialFormData: FormData = {
   admin3Mobile: "",
   admin3Email: "",
   admin3Status: "",
-  agreedToServiceAgreement: false,
-  acknowledgedFcraRights: false,
-  acknowledgedUserNotice: false,
-  signerName: "",
-  signerTitle: "",
-  signatureDataUrl: "",
-  signedAt: "",
 };
 
 export default function AccountSetup() {
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [showReview, setShowReview] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [intakeId, setIntakeId] = useState<number | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submitIntake = trpc.signup.submitIntake.useMutation({
-    onSuccess: () => {
-      setShowSuccess(true);
-      toast.success("Submission successful!");
+    onSuccess: (data) => {
+      setIntakeId(data.intakeId);
+      toast.success("Application submitted. Please sign the Service Agreement.");
     },
     onError: (err) => {
       toast.error(`Submission failed: ${err.message}`);
@@ -183,13 +169,6 @@ export default function AccountSetup() {
       if (!formData.admin1Email.trim()) newErrors.admin1Email = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.admin1Email)) newErrors.admin1Email = "Invalid email format";
       if (!formData.admin1Mobile.trim()) newErrors.admin1Mobile = "Mobile number is required";
-    } else if (step === 5) {
-      if (!formData.agreedToServiceAgreement) newErrors.agreedToServiceAgreement = "You must agree to the Service Agreement";
-      if (!formData.acknowledgedFcraRights) newErrors.acknowledgedFcraRights = "You must acknowledge the FCRA Summary of Rights";
-      if (!formData.acknowledgedUserNotice) newErrors.acknowledgedUserNotice = "You must acknowledge the Notice to Users";
-      if (!formData.signerName.trim()) newErrors.signerName = "Signer name is required";
-      if (!formData.signerTitle.trim()) newErrors.signerTitle = "Signer title is required";
-      if (!formData.signatureDataUrl) newErrors.signatureDataUrl = "A signature is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -197,9 +176,6 @@ export default function AccountSetup() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep === 5 && !formData.signedAt) {
-        setFormData((prev) => ({ ...prev, signedAt: new Date().toISOString() }));
-      }
       if (currentStep === STEPS.length - 1) setShowReview(true);
       else setCurrentStep(currentStep + 1);
     }
@@ -211,86 +187,75 @@ export default function AccountSetup() {
   };
 
   const handleSubmit = async () => {
-    try {
-      submitIntake.mutate({
-        companyName: formData.companyName,
-        dba: formData.dba,
-        ein: formData.ein,
-        businessType: formData.businessType,
-        businessEntity: formData.businessEntity,
-        ownerName: formData.ownerName,
-        ownerFirstName: formData.ownerName.split(" ")[0] || "",
-        ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || formData.ownerName.split(" ")[0] || "",
-        ownerEmail: formData.ownerEmail,
-        ownerPhone: formData.ownerPhone,
-        ownerPhoneExt: formData.ownerPhoneExt,
-        ownerTitle: "",
-        contactName: formData.contactName,
-        contactFirstName: formData.contactName.split(" ")[0] || "",
-        contactLastName: formData.contactName.split(" ").slice(1).join(" ") || formData.contactName.split(" ")[0] || "",
-        contactEmail: formData.contactEmail,
-        contactWorkPhone: formData.contactWorkPhone,
-        contactWorkPhoneExt: formData.contactWorkPhoneExt,
-        contactMobilePhone: formData.contactMobilePhone,
-        contactPhone: formData.contactWorkPhone,
-        contactTitle: "",
-        businessStreet: formData.businessStreet,
-        businessStreet2: formData.businessStreet2,
-        businessCity: formData.businessCity,
-        businessState: formData.businessState,
-        businessZip: formData.businessZip,
-        businessCountry: formData.businessCountry,
-        billingSameAsBusiness: formData.billingSameAsBusiness ? "true" : "false",
-        billingStreet: formData.billingStreet,
-        billingStreet2: formData.billingStreet2,
-        billingCity: formData.billingCity,
-        billingState: formData.billingState,
-        billingZip: formData.billingZip,
-        billingCountry: formData.billingCountry,
-        billingAttention: formData.billingAttention,
-        adminUsers: [
-          {
-            firstName: formData.admin1FirstName,
-            lastName: formData.admin1LastName,
-            email: formData.admin1Email,
-            phone: formData.admin1Mobile,
-            jobTitle: formData.admin1JobTitle,
-          },
-          ...(formData.admin2FirstName ? [{
-            firstName: formData.admin2FirstName,
-            lastName: formData.admin2LastName,
-            email: formData.admin2Email,
-            phone: formData.admin2Mobile,
-            jobTitle: formData.admin2JobTitle,
-          }] : []),
-          ...(formData.admin3FirstName ? [{
-            firstName: formData.admin3FirstName,
-            lastName: formData.admin3LastName,
-            email: formData.admin3Email,
-            phone: formData.admin3Mobile,
-            jobTitle: formData.admin3JobTitle,
-          }] : []),
-        ],
-        conversationLog: JSON.stringify(formData),
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to prepare form data");
-    }
+    submitIntake.mutate({
+      companyName: formData.companyName,
+      dba: formData.dba,
+      ein: formData.ein,
+      businessType: formData.businessType,
+      businessEntity: formData.businessEntity,
+      ownerName: formData.ownerName,
+      ownerFirstName: formData.ownerName.split(" ")[0] || "",
+      ownerLastName: formData.ownerName.split(" ").slice(1).join(" ") || formData.ownerName.split(" ")[0] || "",
+      ownerEmail: formData.ownerEmail,
+      ownerPhone: formData.ownerPhone,
+      ownerPhoneExt: formData.ownerPhoneExt,
+      ownerTitle: "",
+      contactName: formData.contactName,
+      contactFirstName: formData.contactName.split(" ")[0] || "",
+      contactLastName: formData.contactName.split(" ").slice(1).join(" ") || formData.contactName.split(" ")[0] || "",
+      contactEmail: formData.contactEmail,
+      contactWorkPhone: formData.contactWorkPhone,
+      contactWorkPhoneExt: formData.contactWorkPhoneExt,
+      contactMobilePhone: formData.contactMobilePhone,
+      contactPhone: formData.contactWorkPhone,
+      contactTitle: "",
+      businessStreet: formData.businessStreet,
+      businessStreet2: formData.businessStreet2,
+      businessCity: formData.businessCity,
+      businessState: formData.businessState,
+      businessZip: formData.businessZip,
+      businessCountry: formData.businessCountry,
+      billingSameAsBusiness: formData.billingSameAsBusiness ? "true" : "false",
+      billingStreet: formData.billingStreet,
+      billingStreet2: formData.billingStreet2,
+      billingCity: formData.billingCity,
+      billingState: formData.billingState,
+      billingZip: formData.billingZip,
+      billingCountry: formData.billingCountry,
+      billingAttention: formData.billingAttention,
+      adminUsers: [
+        {
+          firstName: formData.admin1FirstName,
+          lastName: formData.admin1LastName,
+          email: formData.admin1Email,
+          phone: formData.admin1Mobile,
+          jobTitle: formData.admin1JobTitle,
+        },
+        ...(formData.admin2FirstName ? [{
+          firstName: formData.admin2FirstName,
+          lastName: formData.admin2LastName,
+          email: formData.admin2Email,
+          phone: formData.admin2Mobile,
+          jobTitle: formData.admin2JobTitle,
+        }] : []),
+        ...(formData.admin3FirstName ? [{
+          firstName: formData.admin3FirstName,
+          lastName: formData.admin3LastName,
+          email: formData.admin3Email,
+          phone: formData.admin3Mobile,
+          jobTitle: formData.admin3JobTitle,
+        }] : []),
+      ],
+      conversationLog: JSON.stringify(formData),
+    });
   };
 
   const progressPercentage = showReview ? 100 : ((currentStep + 1) / STEPS.length) * 100;
 
-  if (showSuccess) {
+  if (intakeId) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-background px-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-3xl font-bold mb-3 text-foreground">Thank You!</h1>
-          <p className="text-muted-foreground mb-6">
-            Your application and signed Service Agreement have been submitted. SaffHire will countersign as Robert Krebsbach, President. Both parties will then receive the executed copy.
-          </p>
-          <Button onClick={() => window.location.reload()} className="w-full">Start New Application</Button>
-        </div>
+      <div className="min-h-screen bg-background">
+        <ClientAgreement intakeId={intakeId} companyName={formData.companyName} />
       </div>
     );
   }
