@@ -8,6 +8,17 @@ import { toast } from "sonner";
 import { SERVICE_AGREEMENT_SECTIONS, FCRA_SUMMARY_OF_RIGHTS, NOTICE_TO_USERS } from "@shared/agreementText";
 import { SAFFHIRE_SIGNER_NAME, SAFFHIRE_SIGNER_TITLE } from "@shared/const";
 
+function downloadPdf(filename: string, base64: string) {
+  const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+  const blob = new Blob([bytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export default function Countersign() {
   const params = useParams<{ id: string }>();
   const search = useSearch();
@@ -20,8 +31,16 @@ export default function Countersign() {
     { enabled: Boolean(intakeId && token) },
   );
 
+  const download = trpc.agreement.downloadExecuted.useQuery(
+    { id: intakeId, token },
+    { enabled: false },
+  );
+
   const countersign = trpc.agreement.countersignByToken.useMutation({
-    onSuccess: () => toast.success("Agreement executed. Both parties will receive the PDF."),
+    onSuccess: (result) => {
+      toast.success("Agreement executed.");
+      if (result.pdfBase64) downloadPdf(result.filename, result.pdfBase64);
+    },
     onError: (err) => toast.error(err.message),
   });
 
@@ -38,9 +57,18 @@ export default function Countersign() {
   const data = query.data;
   if (data.status === "fully_executed" || countersign.isSuccess) {
     return (
-      <div className="max-w-xl mx-auto p-8 text-center">
-        <h1 className="text-2xl font-bold mb-3">Agreement executed</h1>
-        <p className="text-muted-foreground">Both parties have been emailed the executed PDF.</p>
+      <div className="max-w-xl mx-auto p-8 text-center space-y-4">
+        <h1 className="text-2xl font-bold">Agreement executed</h1>
+        <p className="text-muted-foreground">A signed PDF has been emailed to SaffHire and the client. You can also download it here.</p>
+        <Button
+          onClick={async () => {
+            const result = await download.refetch();
+            if (result.data?.pdfBase64) downloadPdf(result.data.filename, result.data.pdfBase64);
+            else toast.error(result.error?.message || "Could not download PDF");
+          }}
+        >
+          Download signed PDF
+        </Button>
       </div>
     );
   }
