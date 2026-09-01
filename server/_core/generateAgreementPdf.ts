@@ -1,5 +1,5 @@
 import { jsPDF } from "jspdf";
-import { SAFFHIRE_SIGNER_NAME, SAFFHIRE_SIGNER_TITLE } from "../../shared/const";
+import { SAFFHIRE_SIGNER_NAME, SAFFHIRE_SIGNER_TITLE, formatCentralTime } from "../../shared/const";
 import { SERVICE_AGREEMENT_SECTIONS, FCRA_SUMMARY_OF_RIGHTS, NOTICE_TO_USERS } from "../../shared/agreementText";
 
 export type AgreementParties = {
@@ -82,7 +82,7 @@ export function generateExecutedAgreementPdf(input: AgreementParties): Buffer {
   y += 6;
   doc.text(`Title: ${input.saffhireSignerTitle || SAFFHIRE_SIGNER_TITLE}`, 20, y);
   y += 6;
-  doc.text(`Date: ${input.saffhireSignedAt ? new Date(input.saffhireSignedAt).toLocaleDateString() : ""}`, 20, y);
+  doc.text(`Date/Time (CT): ${formatCentralTime(input.saffhireSignedAt)}`, 20, y);
   y += 16;
   doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
@@ -100,6 +100,6 @@ export function generateExecutedAgreementPdf(input: AgreementParties): Buffer {
   y += 6;
   doc.text(`Title: ${input.clientSignerTitle || ""}`, 20, y);
   y += 6;
-  doc.text(`Date: ${input.clientSignedAt ? new Date(input.clientSignedAt).toLocaleDateString() : ""}`, 20, y);
+  doc.text(`Date/Time (CT): ${formatCentralTime(input.clientSignedAt)}`, 20, y);
   return Buffer.from(doc.output("arraybuffer"));
 }

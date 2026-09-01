@@ -7,3 +7,19 @@ export const NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
 export const SAFFHIRE_SIGNER_NAME = "Robert Krebsbach";
 export const SAFFHIRE_SIGNER_TITLE = "President";
 export const SAFFHIRE_NOTIFY_EMAIL = "robertk@saffhire.com";
+
+export function formatCentralTime(iso?: string | null) {
+  if (!iso) return "";
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("en-US", {
+    timeZone: "America/Chicago",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+    timeZoneName: "short",
+  });
+}
