@@ -6,13 +6,11 @@ import { getDb } from "./db";
 import { signupIntakes } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
 
-import { storagePut } from "./storage";
 import { upsertContactWithIntakeTag } from "./ghl";
 
 const APPS_SCRIPT_URL = process.env.VITE_GOOGLE_APPS_SCRIPT_URL || "";
 
 export const signupRouter = router({
-  // ─── Submit Complete Intake ──────────────────────────────────────────────────
   submitIntake: publicProcedure
     .input(
       z.object({
@@ -65,14 +63,15 @@ export const signupRouter = router({
       const db = await getDb();
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
-      // 1. Save to database
+      let intakeId = 0;
       try {
         const fullData = JSON.stringify(input);
-        await db.insert(signupIntakes).values({
+        const inserted = await db.insert(signupIntakes).values({
           status: "Completed",
           conversationLog: fullData,
-        });
-        console.log("[Intake] Saved to database.");
+        }).returning({ id: signupIntakes.id });
+        intakeId = inserted[0]?.id || 0;
+        console.log("[Intake] Saved to database.", intakeId);
       } catch (err: any) {
         console.error("[Intake] DB insert failed:", err);
         const detail = err?.cause?.message || err?.detail || err?.message || JSON.stringify(err);
@@ -82,7 +81,6 @@ export const signupRouter = router({
         });
       }
 
-      // 2. Create or update contact in GoHighLevel
       try {
         const contactId = await upsertContactWithIntakeTag({
           firstName: input.ownerFirstName,
@@ -98,11 +96,10 @@ export const signupRouter = router({
         console.error("[Intake] GHL sync failed:", err);
       }
 
-      // 3. Notify owner with PDF attachment
       try {
         await notifyOwner({
           title: `New Credentialing Application: ${input.companyName || "Unnamed"}`,
-          content: `A new credentialing application has been submitted by ${input.ownerName || input.contactName || "someone"}. A PDF of the full application is attached.`,
+          content: `A new credentialing application has been submitted by ${input.ownerName || input.contactName || "someone"}. A PDF of the full application is attached so you can set up the account. The client will sign the Service Agreement next. You will get a separate email with a countersign link after they sign.`,
           formData: input,
         });
         console.log("[Intake] Owner notified with PDF.");
@@ -110,10 +107,9 @@ export const signupRouter = router({
         console.error("[Intake] Owner notification failed:", err);
       }
 
-      return { saved: true };
+      return { saved: true, intakeId };
     }),
 
-  // ─── List Intakes (admin only) ────────────────────────────────────────────────────
   listIntakes: protectedProcedure.use(({ ctx, next }) => {
     if (ctx.user.role !== "admin") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
@@ -151,7 +147,6 @@ export const signupRouter = router({
       return { rows };
     }),
 
-  // ─── Manual Sync to Google Sheets ────────────────────────────────────────────────
   manualSyncToSheets: protectedProcedure.use(({ ctx, next }) => {
     if (ctx.user.role !== "admin") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
@@ -220,7 +215,6 @@ export const signupRouter = router({
       }
     }),
 
-  // ─── Delete Intake (admin only) ──────────────────────────────────────────────────
   deleteIntake: protectedProcedure.use(({ ctx, next }) => {
     if (ctx.user.role !== "admin") {
       throw new TRPCError({ code: "FORBIDDEN", message: "Admin access required." });
