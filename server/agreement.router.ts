@@ -36,11 +36,11 @@ function executedPdfFor(data: Record<string, any>, clientAgreement: Record<strin
     clientSignerName: clientAgreement.signerName,
     clientSignerTitle: clientAgreement.signerTitle,
     clientSignatureDataUrl: clientAgreement.signatureDataUrl,
-    clientSignedAt: clientAgreement.signedAt,
+    clientSignedAt: clientAgreement.signatureAcceptedAt || clientAgreement.signedAt,
     saffhireSignerName: clientAgreement.saffhireSignerName || SAFFHIRE_SIGNER_NAME,
     saffhireSignerTitle: clientAgreement.saffhireSignerTitle || SAFFHIRE_SIGNER_TITLE,
     saffhireSignatureDataUrl: saffhireSignatureDataUrl || clientAgreement.saffhireSignatureDataUrl,
-    saffhireSignedAt: saffhireSignedAt || clientAgreement.saffhireSignedAt,
+    saffhireSignedAt: saffhireSignedAt || clientAgreement.saffhireSignatureAcceptedAt || clientAgreement.saffhireSignedAt,
   });
   return {
     filename: `SaffHire_Service_Agreement_${safeName}.pdf`,
@@ -56,6 +56,9 @@ export const agreementRouter = router({
       signerName: z.string().min(1),
       signerTitle: z.string().min(1),
       signatureDataUrl: z.string().min(20),
+      typedName: z.string().optional(),
+      signatureAcceptedAt: z.string().optional(),
+      signatureMethod: z.string().optional(),
       agreedToServiceAgreement: z.boolean(),
       acknowledgedFcraRights: z.boolean(),
       acknowledgedUserNotice: z.boolean(),
@@ -71,11 +74,15 @@ export const agreementRouter = router({
       if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Application not found" });
       const data = parseLog(row.conversationLog);
       const token = randomBytes(24).toString("hex");
+      const acceptedAt = input.signatureAcceptedAt || new Date().toISOString();
       data.agreement = {
         signerName: input.signerName,
         signerTitle: input.signerTitle,
         signatureDataUrl: input.signatureDataUrl,
-        signedAt: new Date().toISOString(),
+        typedName: input.typedName || input.signerName,
+        signatureMethod: input.signatureMethod || "typed_cursive",
+        signatureAcceptedAt: acceptedAt,
+        signedAt: acceptedAt,
         companyName: data.companyName,
         agreedToServiceAgreement: true,
         acknowledgedFcraRights: true,
@@ -117,7 +124,7 @@ export const agreementRouter = router({
         signerName: agreement.signerName || "",
         signerTitle: agreement.signerTitle || "",
         signatureDataUrl: agreement.signatureDataUrl || "",
-        signedAt: agreement.signedAt || "",
+        signedAt: agreement.signatureAcceptedAt || agreement.signedAt || "",
         status: agreement.status || "client_signed",
       };
     }),
@@ -147,6 +154,8 @@ export const agreementRouter = router({
       id: z.number(),
       token: z.string().min(10),
       signatureDataUrl: z.string().min(20),
+      signatureAcceptedAt: z.string().optional(),
+      signatureMethod: z.string().optional(),
     }))
     .mutation(async ({ input }) => {
       const db = await getDb();
@@ -159,12 +168,14 @@ export const agreementRouter = router({
       if (!clientAgreement.countersignToken || clientAgreement.countersignToken !== input.token) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Invalid countersign link" });
       }
-      const signedAt = new Date().toISOString();
+      const signedAt = input.signatureAcceptedAt || new Date().toISOString();
       data.agreement = {
         ...clientAgreement,
         saffhireSignerName: SAFFHIRE_SIGNER_NAME,
         saffhireSignerTitle: SAFFHIRE_SIGNER_TITLE,
         saffhireSignatureDataUrl: input.signatureDataUrl,
+        saffhireSignatureMethod: input.signatureMethod || "typed_cursive",
+        saffhireSignatureAcceptedAt: signedAt,
         saffhireSignedAt: signedAt,
         status: "fully_executed",
       };
