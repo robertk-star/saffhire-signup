@@ -28,6 +28,27 @@ function originFromRequest(req: { headers?: Record<string, unknown> }) {
   return "";
 }
 
+function executedPdfFor(data: Record<string, any>, clientAgreement: Record<string, any>, saffhireSignatureDataUrl?: string, saffhireSignedAt?: string) {
+  const company = data.companyName || clientAgreement.companyName || "Client";
+  const safeName = company.replace(/[^a-z0-9]/gi, "_").slice(0, 40);
+  const pdf = generateExecutedAgreementPdf({
+    companyName: company,
+    clientSignerName: clientAgreement.signerName,
+    clientSignerTitle: clientAgreement.signerTitle,
+    clientSignatureDataUrl: clientAgreement.signatureDataUrl,
+    clientSignedAt: clientAgreement.signedAt,
+    saffhireSignerName: clientAgreement.saffhireSignerName || SAFFHIRE_SIGNER_NAME,
+    saffhireSignerTitle: clientAgreement.saffhireSignerTitle || SAFFHIRE_SIGNER_TITLE,
+    saffhireSignatureDataUrl: saffhireSignatureDataUrl || clientAgreement.saffhireSignatureDataUrl,
+    saffhireSignedAt: saffhireSignedAt || clientAgreement.saffhireSignedAt,
+  });
+  return {
+    filename: `SaffHire_Service_Agreement_${safeName}.pdf`,
+    pdf,
+    company,
+  };
+}
+
 export const agreementRouter = router({
   clientSign: publicProcedure
     .input(z.object({
@@ -101,6 +122,26 @@ export const agreementRouter = router({
       };
     }),
 
+  downloadExecuted: publicProcedure
+    .input(z.object({ id: z.number(), token: z.string().min(10) }))
+    .query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
+      const rows = await db.select().from(signupIntakes).where(eqOp(signupIntakes.id, input.id)).limit(1);
+      const row = rows[0];
+      if (!row) throw new TRPCError({ code: "NOT_FOUND", message: "Agreement not found" });
+      const data = parseLog(row.conversationLog);
+      const agreement = data.agreement || {};
+      if (!agreement.countersignToken || agreement.countersignToken !== input.token) {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Invalid countersign link" });
+      }
+      if (agreement.status !== "fully_executed") {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Agreement is not fully executed yet" });
+      }
+      const built = executedPdfFor(data, agreement);
+      return { filename: built.filename, pdfBase64: built.pdf.toString("base64") };
+    }),
+
   countersignByToken: publicProcedure
     .input(z.object({
       id: z.number(),
@@ -132,30 +173,19 @@ export const agreementRouter = router({
         updatedAt: new Date(),
       }).where(eqOp(signupIntakes.id, input.id));
 
-      const executedPdf = generateExecutedAgreementPdf({
-        companyName: data.companyName || clientAgreement.companyName,
-        clientSignerName: clientAgreement.signerName,
-        clientSignerTitle: clientAgreement.signerTitle,
-        clientSignatureDataUrl: clientAgreement.signatureDataUrl,
-        clientSignedAt: clientAgreement.signedAt,
-        saffhireSignerName: SAFFHIRE_SIGNER_NAME,
-        saffhireSignerTitle: SAFFHIRE_SIGNER_TITLE,
-        saffhireSignatureDataUrl: input.signatureDataUrl,
-        saffhireSignedAt: signedAt,
-      });
+      const built = executedPdfFor(data, data.agreement, input.signatureDataUrl, signedAt);
       const recipients = [SAFFHIRE_NOTIFY_EMAIL];
       if (data.ownerEmail) recipients.push(data.ownerEmail);
       if (data.contactEmail && data.contactEmail !== data.ownerEmail) recipients.push(data.contactEmail);
-      const safeName = (data.companyName || "Client").replace(/[^a-z0-9]/gi, "_").slice(0, 40);
       await notifyOwner({
-        title: `Executed Service Agreement: ${data.companyName || "Client"}`,
+        title: `Executed Service Agreement: ${built.company}`,
         content: `The 2026 SaffHire Service Agreement is fully executed. SaffHire signed as ${SAFFHIRE_SIGNER_NAME}, ${SAFFHIRE_SIGNER_TITLE}. The attached PDF includes the full agreement, the Summary of Rights, the Notice to Users, and both signatures.`,
         to: recipients,
         extraAttachments: [{
-          filename: `SaffHire_Service_Agreement_${safeName}.pdf`,
-          content: executedPdf,
+          filename: built.filename,
+          content: built.pdf,
         }],
       });
-      return { signed: true };
+      return { signed: true, filename: built.filename, pdfBase64: built.pdf.toString("base64") };
     }),
 });
