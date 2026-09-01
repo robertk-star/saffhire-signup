@@ -10,6 +10,7 @@ const STEPS = [
   { id: 2, title: "Business Address", label: "Business Address" },
   { id: 3, title: "Billing Address", label: "Billing Address" },
   { id: 4, title: "Admin Users", label: "Admin Users" },
+  { id: 5, title: "Service Agreement", label: "Agreement" },
 ];
 
 export interface FormData {
@@ -58,6 +59,13 @@ export interface FormData {
   admin3Mobile: string;
   admin3Email: string;
   admin3Status: string;
+  agreedToServiceAgreement: boolean;
+  acknowledgedFcraRights: boolean;
+  acknowledgedUserNotice: boolean;
+  signerName: string;
+  signerTitle: string;
+  signatureDataUrl: string;
+  signedAt: string;
 }
 
 const initialFormData: FormData = {
@@ -106,6 +114,13 @@ const initialFormData: FormData = {
   admin3Mobile: "",
   admin3Email: "",
   admin3Status: "",
+  agreedToServiceAgreement: false,
+  acknowledgedFcraRights: false,
+  acknowledgedUserNotice: false,
+  signerName: "",
+  signerTitle: "",
+  signatureDataUrl: "",
+  signedAt: "",
 };
 
 export default function AccountSetup() {
@@ -168,6 +183,13 @@ export default function AccountSetup() {
       if (!formData.admin1Email.trim()) newErrors.admin1Email = "Email is required";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.admin1Email)) newErrors.admin1Email = "Invalid email format";
       if (!formData.admin1Mobile.trim()) newErrors.admin1Mobile = "Mobile number is required";
+    } else if (step === 5) {
+      if (!formData.agreedToServiceAgreement) newErrors.agreedToServiceAgreement = "You must agree to the Service Agreement";
+      if (!formData.acknowledgedFcraRights) newErrors.acknowledgedFcraRights = "You must acknowledge the FCRA Summary of Rights";
+      if (!formData.acknowledgedUserNotice) newErrors.acknowledgedUserNotice = "You must acknowledge the Notice to Users";
+      if (!formData.signerName.trim()) newErrors.signerName = "Signer name is required";
+      if (!formData.signerTitle.trim()) newErrors.signerTitle = "Signer title is required";
+      if (!formData.signatureDataUrl) newErrors.signatureDataUrl = "A signature is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -175,6 +197,9 @@ export default function AccountSetup() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
+      if (currentStep === 5 && !formData.signedAt) {
+        setFormData((prev) => ({ ...prev, signedAt: new Date().toISOString() }));
+      }
       if (currentStep === STEPS.length - 1) setShowReview(true);
       else setCurrentStep(currentStep + 1);
     }
@@ -262,7 +287,7 @@ export default function AccountSetup() {
         <div className="max-w-md text-center">
           <h1 className="text-3xl font-bold mb-3 text-foreground">Thank You!</h1>
           <p className="text-muted-foreground mb-6">
-            Your credentialing application has been submitted successfully. We'll review your information and be in touch shortly.
+            Your application and signed Service Agreement have been submitted. SaffHire will countersign as Robert Krebsbach, President. Both parties will then receive the executed copy.
           </p>
           <Button onClick={() => window.location.reload()} className="w-full">Start New Application</Button>
         </div>
