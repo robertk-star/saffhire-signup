@@ -6,7 +6,7 @@ import SignaturePad from "@/components/SignaturePad";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { SERVICE_AGREEMENT_SECTIONS, FCRA_SUMMARY_OF_RIGHTS, NOTICE_TO_USERS } from "@shared/agreementText";
-import { SAFFHIRE_SIGNER_NAME, SAFFHIRE_SIGNER_TITLE } from "@shared/const";
+import { SAFFHIRE_SIGNER_NAME, SAFFHIRE_SIGNER_TITLE, formatCentralTime } from "@shared/const";
 
 function downloadPdf(filename: string, base64: string) {
   const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
@@ -104,6 +104,9 @@ export default function Countersign() {
       <Card className="p-6">
         <h2 className="font-semibold mb-3">Client signature already on file</h2>
         <p className="text-sm">{data.signerName}, {data.signerTitle}</p>
+        {data.signedAt && (
+          <p className="text-xs text-muted-foreground mt-1">Signed {formatCentralTime(data.signedAt)}</p>
+        )}
         {data.signatureDataUrl && (
           <img src={data.signatureDataUrl} alt="Client signature" className="h-20 mt-3 border rounded bg-white" />
         )}
