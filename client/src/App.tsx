@@ -9,6 +9,7 @@ import AccountSetup from "./pages/AccountSetup";
 import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
+import Countersign from "./pages/Countersign";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path={"/login"} component={Login} />
       <Route path={"/admin"} component={Admin} />
       <Route path={"/users"} component={UserManagement} />
+      <Route path={"/countersign/:id"} component={Countersign} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>
