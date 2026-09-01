@@ -4,10 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import SignaturePad from "@/components/SignaturePad";
+import TypedSignature from "@/components/TypedSignature";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { SERVICE_AGREEMENT_SECTIONS, FCRA_SUMMARY_OF_RIGHTS, NOTICE_TO_USERS } from "@shared/agreementText";
+import { formatCentralTime } from "@shared/const";
 
 export default function ClientAgreement({
   intakeId,
@@ -22,6 +23,8 @@ export default function ClientAgreement({
   const [signerName, setSignerName] = useState("");
   const [signerTitle, setSignerTitle] = useState("");
   const [signature, setSignature] = useState("");
+  const [acceptedAt, setAcceptedAt] = useState("");
+  const [typedName, setTypedName] = useState("");
   const [done, setDone] = useState(false);
 
   const sign = trpc.agreement.clientSign.useMutation({
@@ -34,8 +37,9 @@ export default function ClientAgreement({
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
         <h1 className="text-3xl font-bold mb-4">Agreement signed</h1>
         <p className="text-muted-foreground">
-          SaffHire has been emailed a link to open this agreement with your signature already on it. After Robert Krebsbach, President, countersigns, both parties will receive the executed PDF.
+          SaffHire has been emailed a link to open this agreement with your accepted signature already on it. After Robert Krebsbach, President, countersigns, both parties will receive the executed PDF.
         </p>
+        {acceptedAt && <p className="text-sm mt-3">Signature accepted {formatCentralTime(acceptedAt)}</p>}
       </div>
     );
   }
@@ -93,8 +97,18 @@ export default function ClientAgreement({
       </div>
 
       <div>
-        <Label className="mb-2 block">Client Signature *</Label>
-        <SignaturePad value={signature} onChange={setSignature} />
+        <Label className="mb-2 block">Type your name to create a signature *</Label>
+        <TypedSignature
+          initialName={signerName}
+          value={signature}
+          acceptedAt={acceptedAt}
+          onChange={({ dataUrl, typedName: nextName, acceptedAt: nextAccepted }) => {
+            setSignature(dataUrl);
+            setTypedName(nextName);
+            setAcceptedAt(nextAccepted);
+            if (nextName && !signerName) setSignerName(nextName);
+          }}
+        />
       </div>
 
       <Button
@@ -105,8 +119,8 @@ export default function ClientAgreement({
             toast.error("Acknowledge all three documents before signing.");
             return;
           }
-          if (!signerName.trim() || !signerTitle.trim() || !signature) {
-            toast.error("Name, title, and signature are required.");
+          if (!signerName.trim() || !signerTitle.trim() || !signature || !acceptedAt) {
+            toast.error("Name, title, and accepted typed signature are required.");
             return;
           }
           sign.mutate({
@@ -114,6 +128,9 @@ export default function ClientAgreement({
             signerName: signerName.trim(),
             signerTitle: signerTitle.trim(),
             signatureDataUrl: signature,
+            typedName: typedName || signerName.trim(),
+            signatureAcceptedAt: acceptedAt,
+            signatureMethod: "typed_cursive",
             agreedToServiceAgreement: true,
             acknowledgedFcraRights: true,
             acknowledgedUserNotice: true,
