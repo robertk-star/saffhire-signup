@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { FormData } from "./AccountSetup";
+import { AgreementStep } from "./agreementStep";
 
 interface FormStepProps {
   step: number;
@@ -241,6 +242,10 @@ export function FormStep({ step, formData, errors, onChange }: FormStepProps) {
     );
   }
 
+  if (step === 5) {
+    return <AgreementStep formData={formData} errors={errors} onChange={onChange} />;
+  }
+
   return null;
 }
 
@@ -251,36 +256,28 @@ export function ReviewScreen({ formData }: { formData: FormData }) {
         <h3 className="font-semibold mb-4">Client Information</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><p className="text-muted-foreground">Company Name</p><p className="font-medium">{formData.companyName}</p></div>
-          <div><p className="text-muted-foreground">DBA</p><p className="font-medium">{formData.dba || "-"}</p></div>
-          <div><p className="text-muted-foreground">EIN</p><p className="font-medium">{formData.ein}</p></div>
-          <div><p className="text-muted-foreground">Business Type</p><p className="font-medium">{formData.businessType}</p></div>
           <div><p className="text-muted-foreground">Owner Name</p><p className="font-medium">{formData.ownerName}</p></div>
-          <div><p className="text-muted-foreground">Owner Email</p><p className="font-medium">{formData.ownerEmail}</p></div>
         </div>
       </Card>
       <Card className="p-6">
         <h3 className="font-semibold mb-4">Contact Information</h3>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><p className="text-muted-foreground">Name</p><p className="font-medium">{formData.contactName || "-"}</p></div>
-          <div><p className="text-muted-foreground">Email</p><p className="font-medium">{formData.contactEmail || "-"}</p></div>
           <div><p className="text-muted-foreground">Mobile Phone</p><p className="font-medium">{formData.contactMobilePhone || "-"}</p></div>
         </div>
       </Card>
       <Card className="p-6">
-        <h3 className="font-semibold mb-4">Business Address</h3>
-        <div className="text-sm">
-          <p className="font-medium">{formData.businessStreet}</p>
-          {formData.businessStreet2 && <p className="font-medium">{formData.businessStreet2}</p>}
-          <p className="font-medium">{formData.businessCity}, {formData.businessState} {formData.businessZip}</p>
-        </div>
-      </Card>
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Admin Users</h3>
-        <div className="space-y-4 text-sm">
-          <div>
-            <p className="text-muted-foreground">Primary Admin</p>
-            <p className="font-medium">{formData.admin1FirstName} {formData.admin1LastName}</p>
-            <p className="text-muted-foreground">{formData.admin1Email}</p>
+        <h3 className="font-semibold mb-4">Service Agreement</h3>
+        <div className="grid grid-cols-2 gap-4 text-sm">
+          <div><p className="text-muted-foreground">Signer</p><p className="font-medium">{formData.signerName}</p></div>
+          <div><p className="text-muted-foreground">Title</p><p className="font-medium">{formData.signerTitle}</p></div>
+          <div className="col-span-2">
+            <p className="text-muted-foreground mb-2">Signature</p>
+            {formData.signatureDataUrl ? (
+              <img src={formData.signatureDataUrl} alt="Client signature" className="h-16 border border-border rounded bg-white" />
+            ) : (
+              <p className="font-medium">-</p>
+            )}
           </div>
         </div>
       </Card>
