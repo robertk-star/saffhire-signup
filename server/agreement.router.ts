@@ -17,10 +17,15 @@ function parseLog(raw?: string | null) {
   }
 }
 
-function appBaseUrl() {
-  return process.env.PUBLIC_APP_URL || process.env.APP_URL || process.env.RAILWAY_PUBLIC_DOMAIN
-    ? `https://${(process.env.PUBLIC_APP_URL || process.env.APP_URL || "").replace(/^https?:\/\//, "") || process.env.RAILWAY_PUBLIC_DOMAIN}`
-    : "";
+function originFromRequest(req: { headers?: Record<string, unknown> }) {
+  const envUrl = (process.env.PUBLIC_APP_URL || process.env.APP_URL || "").replace(/\/$/, "");
+  if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  const headers = req.headers || {};
+  const host = String(headers["x-forwarded-host"] || headers.host || "").split(",")[0].trim();
+  const proto = String(headers["x-forwarded-proto"] || "https").split(",")[0].trim() || "https";
+  if (host) return `${proto}://${host}`;
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  return "";
 }
 
 export const agreementRouter = router({
@@ -34,7 +39,7 @@ export const agreementRouter = router({
       acknowledgedFcraRights: z.boolean(),
       acknowledgedUserNotice: z.boolean(),
     }))
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       if (!input.agreedToServiceAgreement || !input.acknowledgedFcraRights || !input.acknowledgedUserNotice) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "All three acknowledgements are required." });
       }
@@ -62,16 +67,15 @@ export const agreementRouter = router({
         updatedAt: new Date(),
       }).where(eqOp(signupIntakes.id, input.intakeId));
 
-      const base = (process.env.PUBLIC_APP_URL || process.env.APP_URL || "").replace(/\/$/, "");
-      const link = base
-        ? `${base}/countersign/${input.intakeId}?token=${token}`
-        : `/countersign/${input.intakeId}?token=${token}`;
+      const base = originFromRequest(ctx.req);
+      const path = `/countersign/${input.intakeId}?token=${token}`;
+      const link = base ? `${base}${path}` : path;
 
       await notifyOwner({
         title: `Client signed Service Agreement: ${data.companyName || "Client"}`,
         content: `The client signed the 2026 Service Agreement. Open this link to review the client-signed agreement and countersign as ${SAFFHIRE_SIGNER_NAME}, ${SAFFHIRE_SIGNER_TITLE}: <p><a href="${link}">${link}</a></p>`,
       });
-      return { signed: true };
+      return { signed: true, countersignUrl: link };
     }),
 
   getForCountersign: publicProcedure
