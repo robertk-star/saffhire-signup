@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { FormStep, ReviewScreen } from "./formSteps";
+import { FormStep } from "./formSteps";
+import { ReviewScreen } from "./reviewScreen";
 import ClientAgreement from "./ClientAgreement";
 
 const STEPS = [
