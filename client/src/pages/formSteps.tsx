@@ -4,7 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { FormData } from "./AccountSetup";
-import { AgreementStep } from "./agreementStep";
 
 interface FormStepProps {
   step: number;
@@ -172,9 +171,6 @@ export function FormStep({ step, formData, errors, onChange }: FormStepProps) {
       <Card key={userNum} className="p-6">
         <h3 className="font-semibold mb-4">
           {userNum === 1 ? "Primary Admin User" : `Additional User ${userNum}`}
-          {userNum > 1 && formData[`admin${userNum}Status` as keyof FormData] && (
-            <span className="text-sm text-muted-foreground ml-2">({formData[`admin${userNum}Status` as keyof FormData]})</span>
-          )}
         </h3>
         <div className="grid grid-cols-2 gap-4 mb-4">
           <FormField label="First Name *" error={errors[`admin${userNum}FirstName`]}>
@@ -242,10 +238,6 @@ export function FormStep({ step, formData, errors, onChange }: FormStepProps) {
     );
   }
 
-  if (step === 5) {
-    return <AgreementStep formData={formData} errors={errors} onChange={onChange} />;
-  }
-
   return null;
 }
 
@@ -264,21 +256,6 @@ export function ReviewScreen({ formData }: { formData: FormData }) {
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div><p className="text-muted-foreground">Name</p><p className="font-medium">{formData.contactName || "-"}</p></div>
           <div><p className="text-muted-foreground">Mobile Phone</p><p className="font-medium">{formData.contactMobilePhone || "-"}</p></div>
-        </div>
-      </Card>
-      <Card className="p-6">
-        <h3 className="font-semibold mb-4">Service Agreement</h3>
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div><p className="text-muted-foreground">Signer</p><p className="font-medium">{formData.signerName}</p></div>
-          <div><p className="text-muted-foreground">Title</p><p className="font-medium">{formData.signerTitle}</p></div>
-          <div className="col-span-2">
-            <p className="text-muted-foreground mb-2">Signature</p>
-            {formData.signatureDataUrl ? (
-              <img src={formData.signatureDataUrl} alt="Client signature" className="h-16 border border-border rounded bg-white" />
-            ) : (
-              <p className="font-medium">-</p>
-            )}
-          </div>
         </div>
       </Card>
     </div>
