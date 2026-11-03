@@ -7,14 +7,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import TypedSignature from "@/components/TypedSignature";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { SERVICE_AGREEMENT_SECTIONS, FCRA_SUMMARY_OF_RIGHTS, NOTICE_TO_USERS } from "@shared/agreementText";
+import { AgreementDocumentScroll, SERVICE_AGREEMENT_ACKNOWLEDGEMENTS } from "@/components/AgreementDocuments";
 import { formatCentralTime } from "@shared/const";
 
 export default function ClientAgreement({
-  intakeId,
+  signToken,
   companyName,
 }: {
-  intakeId: number;
+  signToken: string;
   companyName: string;
 }) {
   const [agreed, setAgreed] = useState(false);
@@ -54,45 +54,30 @@ export default function ClientAgreement({
       </div>
 
       <Card className="p-6">
-        <div className="h-[28rem] overflow-y-auto space-y-5 text-sm leading-6 pr-2">
-          {SERVICE_AGREEMENT_SECTIONS.map((section) => (
-            <div key={section.title}>
-              <h2 className="font-semibold mb-1">{section.title}</h2>
-              <p className="whitespace-pre-wrap">{section.body}</p>
-            </div>
-          ))}
-          <div>
-            <h2 className="font-semibold mb-1">Summary of Rights under the FCRA</h2>
-            <p className="whitespace-pre-wrap">{FCRA_SUMMARY_OF_RIGHTS}</p>
-          </div>
-          <div>
-            <h2 className="font-semibold mb-1">Notice to Users of Consumer Reports</h2>
-            <p className="whitespace-pre-wrap">{NOTICE_TO_USERS}</p>
-          </div>
-        </div>
+        <AgreementDocumentScroll />
       </Card>
 
       <label className="flex items-start gap-3 cursor-pointer">
         <Checkbox checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
-        <span className="text-sm">I have read and agree to the SaffHire Service Agreement.</span>
+        <span className="text-sm">{SERVICE_AGREEMENT_ACKNOWLEDGEMENTS[0]}</span>
       </label>
       <label className="flex items-start gap-3 cursor-pointer">
         <Checkbox checked={fcra} onCheckedChange={(v) => setFcra(v === true)} />
-        <span className="text-sm">I acknowledge receipt of the Summary of Rights under the FCRA.</span>
+        <span className="text-sm">{SERVICE_AGREEMENT_ACKNOWLEDGEMENTS[1]}</span>
       </label>
       <label className="flex items-start gap-3 cursor-pointer">
         <Checkbox checked={notice} onCheckedChange={(v) => setNotice(v === true)} />
-        <span className="text-sm">I acknowledge receipt of the Notice to Users of Consumer Reports.</span>
+        <span className="text-sm">{SERVICE_AGREEMENT_ACKNOWLEDGEMENTS[2]}</span>
       </label>
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <Label className="mb-2 block">Signer Name *</Label>
-          <Input value={signerName} onChange={(e) => setSignerName(e.target.value)} />
+          <Label htmlFor="signer-name" className="mb-2 block">Signer Name *</Label>
+          <Input id="signer-name" value={signerName} onChange={(e) => setSignerName(e.target.value)} />
         </div>
         <div>
-          <Label className="mb-2 block">Title *</Label>
-          <Input value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} />
+          <Label htmlFor="signer-title" className="mb-2 block">Title *</Label>
+          <Input id="signer-title" value={signerTitle} onChange={(e) => setSignerTitle(e.target.value)} />
         </div>
       </div>
 
@@ -124,7 +109,7 @@ export default function ClientAgreement({
             return;
           }
           sign.mutate({
-            intakeId,
+            token: signToken,
             signerName: signerName.trim(),
             signerTitle: signerTitle.trim(),
             signatureDataUrl: signature,

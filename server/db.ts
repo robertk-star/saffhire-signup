@@ -7,6 +7,14 @@ import { ENV } from './_core/env';
 let _db: ReturnType<typeof drizzle> | null = null;
 let _client: ReturnType<typeof postgres> | null = null;
 
+export async function closeDb() {
+  if (_client) {
+    await _client.end({ timeout: 5 });
+    _client = null;
+    _db = null;
+  }
+}
+
 // Lazily create the drizzle instance so local tooling can run without a DB.
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {

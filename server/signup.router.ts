@@ -1,10 +1,11 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { eq as eqOp } from "drizzle-orm";
+import { and, eq as eqOp } from "drizzle-orm";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { signupIntakes } from "../drizzle/schema";
 import { notifyOwner } from "./_core/notification";
+import { createSignToken } from "./signToken";
 
 import { upsertContactWithIntakeTag } from "./ghl";
 
@@ -64,13 +65,18 @@ export const signupRouter = router({
       if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Database unavailable" });
 
       let intakeId = 0;
+      const signToken = createSignToken();
       try {
         const fullData = JSON.stringify(input);
         const inserted = await db.insert(signupIntakes).values({
           status: "Completed",
+          kind: "credentialing",
+          agreementStatus: "unsigned",
+          signToken,
           conversationLog: fullData,
         }).returning({ id: signupIntakes.id });
         intakeId = inserted[0]?.id || 0;
+        if (!intakeId) throw new Error("Insert did not return an id");
         console.log("[Intake] Saved to database.", intakeId);
       } catch (err: any) {
         console.error("[Intake] DB insert failed:", err);
@@ -107,7 +113,7 @@ export const signupRouter = router({
         console.error("[Intake] Owner notification failed:", err);
       }
 
-      return { saved: true, intakeId };
+      return { saved: true, intakeId, signToken };
     }),
 
   listIntakes: protectedProcedure.use(({ ctx, next }) => {
@@ -144,7 +150,12 @@ export const signupRouter = router({
           .offset(input.offset);
       }
 
-      return { rows };
+      return {
+        rows: rows.map((row) => {
+          const { signToken: _signToken, ...rest } = row;
+          return rest;
+        }),
+      };
     }),
 
   manualSyncToSheets: protectedProcedure.use(({ ctx, next }) => {
@@ -161,7 +172,7 @@ export const signupRouter = router({
         const unsynced = await db
           .select()
           .from(signupIntakes)
-          .where(eqOp(signupIntakes.synced, "false"))
+          .where(and(eqOp(signupIntakes.synced, "false"), eqOp(signupIntakes.kind, "credentialing")))
           .limit(100);
 
         if (unsynced.length === 0) {

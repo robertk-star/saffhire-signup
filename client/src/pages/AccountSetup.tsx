@@ -115,11 +115,13 @@ export default function AccountSetup() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [showReview, setShowReview] = useState(false);
   const [intakeId, setIntakeId] = useState<number | null>(null);
+  const [signToken, setSignToken] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const submitIntake = trpc.signup.submitIntake.useMutation({
     onSuccess: (data) => {
       setIntakeId(data.intakeId);
+      setSignToken(data.signToken);
       toast.success("Application submitted. Please sign the Service Agreement.");
     },
     onError: (err) => {
@@ -253,10 +255,10 @@ export default function AccountSetup() {
 
   const progressPercentage = showReview ? 100 : ((currentStep + 1) / STEPS.length) * 100;
 
-  if (intakeId) {
+  if (intakeId && signToken) {
     return (
       <div className="min-h-screen bg-background">
-        <ClientAgreement intakeId={intakeId} companyName={formData.companyName} />
+        <ClientAgreement signToken={signToken} companyName={formData.companyName} />
       </div>
     );
   }

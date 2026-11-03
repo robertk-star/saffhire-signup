@@ -10,6 +10,8 @@ import Admin from "./pages/Admin";
 import Login from "./pages/Login";
 import UserManagement from "./pages/UserManagement";
 import Countersign from "./pages/Countersign";
+import SignAgreement from "./pages/SignAgreement";
+import AgreementLinkAdmin from "./pages/AgreementLinkAdmin";
 
 function Router() {
   return (
@@ -17,8 +19,10 @@ function Router() {
       <Route path={"/"} component={AccountSetup} />
       <Route path={"/login"} component={Login} />
       <Route path={"/admin"} component={Admin} />
+      <Route path={"/admin/agreement-link"} component={AgreementLinkAdmin} />
       <Route path={"/users"} component={UserManagement} />
       <Route path={"/countersign/:id"} component={Countersign} />
+      <Route path={"/sign/:token"} component={SignAgreement} />
       <Route path={"/404"} component={NotFound} />
       <Route component={NotFound} />
     </Switch>

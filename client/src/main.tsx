@@ -40,7 +40,11 @@ queryClient.getMutationCache().subscribe(event => {
 const trpcClient = trpc.createClient({
   links: [
     httpBatchLink({
-      url: "https://saffhire-signup-production.up.railway.app/api/trpc",
+      // Dev uses the local server. Production builds keep the Railway API host
+      // so a separately hosted frontend still reaches the API.
+      url: import.meta.env.DEV
+        ? "/api/trpc"
+        : "https://saffhire-signup-production.up.railway.app/api/trpc",
       transformer: superjson,
       fetch(input, init) {
         return globalThis.fetch(input, {

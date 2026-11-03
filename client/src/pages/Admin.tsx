@@ -28,14 +28,35 @@ type StatusFilter = "all" | "In Progress" | "Completed";
 
 type IntakeRow = {
   id: number;
-  sessionId: string | null;
   status: "In Progress" | "Completed";
+  kind?: "credentialing" | "agreement_only";
+  agreementStatus?: "unsigned" | "client_signed" | "fully_executed";
   synced: "true" | "false";
   syncedAt: Date | null;
   conversationLog: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
+
+type TypeFilter = "all" | "credentialing" | "agreement_only";
+
+function recordKind(intake: IntakeRow) {
+  return intake.kind === "agreement_only" ? "agreement_only" : "credentialing";
+}
+
+function displayedAgreementStatus(intake: IntakeRow) {
+  if (intake.agreementStatus && intake.agreementStatus !== "unsigned") return intake.agreementStatus;
+  const data = parseConversationLog(intake.conversationLog);
+  const jsonStatus = data.agreement?.status;
+  if (jsonStatus === "fully_executed" || jsonStatus === "client_signed") return jsonStatus;
+  return "unsigned";
+}
+
+function agreementLabel(status: string) {
+  if (status === "fully_executed") return "Fully executed";
+  if (status === "client_signed") return "Client signed";
+  return "Not signed";
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -177,8 +198,14 @@ function IntakeDetailModal({
         </DialogHeader>
 
         <div className="mt-4" id="intake-pdf-content">
+          {recordKind(intake) === "agreement_only" && (
+            <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+              Agreement only. This record is not a credentialing application. Agreement status: {agreementLabel(displayedAgreementStatus(intake))}.
+            </div>
+          )}
           <Section title="Client Information">
             <Field label="Company Name" value={data.companyName} />
+            {recordKind(intake) === "agreement_only" && <Field label="Signer email" value={data.signerEmail} />}
             {data.dba && <Field label="DBA" value={data.dba} />}
             <Field label="EIN" value={data.ein} />
             {data.businessType && <Field label="Business Type" value={data.businessType} />}
@@ -278,6 +305,7 @@ export default function Admin() {
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<StatusFilter>("all");
+  const [typeFilter, setTypeFilter] = React.useState<TypeFilter>("all");
   const [selectedIntake, setSelectedIntake] = React.useState<IntakeRow | null>(null);
   const [sortDir, setSortDir] = React.useState<"asc" | "desc">("desc");
 
@@ -315,14 +343,16 @@ export default function Admin() {
   const filtered = intakes.filter((intake) => {
     const data = parseConversationLog(intake.conversationLog);
     const matchesStatus = statusFilter === "all" || intake.status === statusFilter;
+    const matchesType = typeFilter === "all" || recordKind(intake) === typeFilter;
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
       !searchTerm ||
       (data.companyName && data.companyName.toLowerCase().includes(searchLower)) ||
       (data.ownerName && data.ownerName.toLowerCase().includes(searchLower)) ||
       (data.ownerEmail && data.ownerEmail.toLowerCase().includes(searchLower)) ||
+      (data.signerEmail && data.signerEmail.toLowerCase().includes(searchLower)) ||
       (data.ein && data.ein.toLowerCase().includes(searchLower));
-    return matchesStatus && matchesSearch;
+    return matchesStatus && matchesType && matchesSearch;
   });
 
   // Sort by date
@@ -332,10 +362,12 @@ export default function Admin() {
     return sortDir === "desc" ? bDate - aDate : aDate - bDate;
   });
 
+  const credentialing = intakes.filter((i: IntakeRow) => recordKind(i) === "credentialing");
   const stats = {
-    total: intakes.length,
-    completed: intakes.filter((i: IntakeRow) => i.status === "Completed").length,
-    inProgress: intakes.filter((i: IntakeRow) => i.status === "In Progress").length,
+    total: credentialing.length,
+    completed: credentialing.filter((i: IntakeRow) => i.status === "Completed").length,
+    inProgress: credentialing.filter((i: IntakeRow) => i.status === "In Progress").length,
+    agreementOnly: intakes.filter((i: IntakeRow) => recordKind(i) === "agreement_only").length,
   };
 
   return (
@@ -363,6 +395,12 @@ export default function Admin() {
             </Button>
             <Button
               variant="outline"
+              onClick={() => window.open("/admin/agreement-link", "_self")}
+            >
+              Signing link
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => window.open("/users", "_self")}
             >
               <Users className="w-4 h-4 mr-2" />
@@ -378,10 +416,10 @@ export default function Admin() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-2xl font-bold">{stats.total}</div>
-            <div className="text-sm text-muted-foreground">Total Submissions</div>
+            <div className="text-sm text-muted-foreground">Credentialing submissions</div>
           </div>
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-2xl font-bold text-emerald-600">{stats.completed}</div>
@@ -390,6 +428,10 @@ export default function Admin() {
           <div className="bg-card border border-border rounded-lg p-4">
             <div className="text-2xl font-bold text-amber-600">{stats.inProgress}</div>
             <div className="text-sm text-muted-foreground">In Progress</div>
+          </div>
+          <div className="bg-card border border-border rounded-lg p-4">
+            <div className="text-2xl font-bold">{stats.agreementOnly}</div>
+            <div className="text-sm text-muted-foreground">Agreement only</div>
           </div>
         </div>
 
@@ -414,6 +456,16 @@ export default function Admin() {
               <SelectItem value="In Progress">In Progress</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as TypeFilter)}>
+            <SelectTrigger className="w-44">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All types</SelectItem>
+              <SelectItem value="credentialing">Credentialing</SelectItem>
+              <SelectItem value="agreement_only">Agreement only</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Table */}
@@ -423,6 +475,7 @@ export default function Admin() {
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="px-6 py-3 text-left text-sm font-semibold">Company</th>
+                  <th className="px-6 py-3 text-left text-sm font-semibold">Type</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Owner</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Email</th>
                   <th className="px-6 py-3 text-left text-sm font-semibold">Phone</th>
@@ -447,13 +500,13 @@ export default function Admin() {
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center">
+                    <td colSpan={9} className="px-6 py-8 text-center">
                       <Loader2 className="w-6 h-6 animate-spin mx-auto" />
                     </td>
                   </tr>
                 ) : filtered.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-6 py-8 text-center text-muted-foreground">
+                    <td colSpan={9} className="px-6 py-8 text-center text-muted-foreground">
                       No submissions found
                     </td>
                   </tr>
@@ -463,20 +516,38 @@ export default function Admin() {
                     return (
                       <tr key={intake.id} className="border-b border-border hover:bg-muted/50 transition-colors">
                         <td className="px-6 py-4 text-sm font-medium">{data.companyName || "Unknown"}</td>
-                        <td className="px-6 py-4 text-sm">{data.ownerName || "—"}</td>
-                        <td className="px-6 py-4 text-sm">{data.ownerEmail || "—"}</td>
+                        <td className="px-6 py-4 text-sm">
+                          {recordKind(intake) === "agreement_only" ? (
+                            <Badge className="bg-sky-100 text-sky-900 border-sky-200">Agreement only</Badge>
+                          ) : (
+                            <Badge variant="outline">Credentialing</Badge>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-sm">{data.ownerName || data.agreement?.signerName || "—"}</td>
+                        <td className="px-6 py-4 text-sm">{data.ownerEmail || data.signerEmail || "—"}</td>
                         <td className="px-6 py-4 text-sm">{data.ownerPhone || "—"}</td>
                         <td className="px-6 py-4 text-sm">
-                          <Badge
-                            variant={intake.status === "Completed" ? "default" : "secondary"}
-                            className={
-                              intake.status === "Completed"
-                                ? "bg-emerald-100 text-emerald-800 border-emerald-200"
-                                : "bg-amber-100 text-amber-800 border-amber-200"
-                            }
-                          >
-                            {intake.status}
-                          </Badge>
+                          {recordKind(intake) === "agreement_only" ? (
+                            <Badge className="bg-sky-100 text-sky-900 border-sky-200">
+                              {agreementLabel(displayedAgreementStatus(intake))}
+                            </Badge>
+                          ) : (
+                            <div>
+                              <Badge
+                                variant={intake.status === "Completed" ? "default" : "secondary"}
+                                className={
+                                  intake.status === "Completed"
+                                    ? "bg-emerald-100 text-emerald-800 border-emerald-200"
+                                    : "bg-amber-100 text-amber-800 border-amber-200"
+                                }
+                              >
+                                {intake.status}
+                              </Badge>
+                              {displayedAgreementStatus(intake) !== "unsigned" && (
+                                <div className="text-xs text-muted-foreground mt-1">{agreementLabel(displayedAgreementStatus(intake))}</div>
+                              )}
+                            </div>
+                          )}
                         </td>
                         <td className="px-6 py-4 text-sm">{formatDate(intake.updatedAt)}</td>
                         <td className="px-6 py-4 text-sm">
