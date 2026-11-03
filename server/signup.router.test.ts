@@ -29,7 +29,9 @@ vi.mock("./db", () => ({
   getDb: vi.fn().mockResolvedValue({
     select: vi.fn().mockImplementation(() => makeSelectChain([])),
     insert: vi.fn().mockReturnValue({
-      values: vi.fn().mockResolvedValue(undefined),
+      values: vi.fn().mockReturnValue({
+        returning: vi.fn().mockResolvedValue([{ id: 7 }]),
+      }),
     }),
     update: vi.fn().mockReturnValue({
       set: vi.fn().mockReturnValue({
@@ -121,7 +123,11 @@ describe("signup.submitIntake", () => {
       ],
     });
 
-    expect(result).toEqual({ saved: true });
+    expect(result).toEqual({
+      saved: true,
+      intakeId: 7,
+      signToken: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
   });
 
   it("calls notifyOwner with company name in title", async () => {
