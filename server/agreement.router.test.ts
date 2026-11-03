@@ -163,6 +163,50 @@ describe("agreement signing guards", () => {
     expect(notifyOwner).not.toHaveBeenCalled();
   });
 
+  it("builds agreement and countersign links from the request host when PUBLIC_APP_URL is unset", async () => {
+    const previousPublic = process.env.PUBLIC_APP_URL;
+    const previousApp = process.env.APP_URL;
+    delete process.env.PUBLIC_APP_URL;
+    delete process.env.APP_URL;
+    process.env.PUBLIC_APP_URL = "not a url";
+    const headers = {
+      host: "saffhire-signup-production.up.railway.app",
+      "x-forwarded-proto": "https",
+    };
+    const admin = appRouter.createCaller({ ...adminCtx(), req: { headers } } as any);
+    const created = await admin.agreement.createSigningLink({
+      companyName: "MMC Agreement Test",
+      signerEmail: "robertk@saffhire.com",
+    });
+    expect(created.url).toBe(`https://saffhire-signup-production.up.railway.app/sign/${harness.state.inserted[0].signToken}`);
+
+    delete process.env.PUBLIC_APP_URL;
+    harness.state.selected = [openRow()];
+    const issued = await admin.agreement.issueSigningLink({ intakeId: 11 });
+    expect(issued.url).toBe(`https://saffhire-signup-production.up.railway.app/sign/${TOKEN}`);
+
+    const client = appRouter.createCaller({ ...publicCtx(), req: { headers } } as any);
+    await client.agreement.clientSign({
+      token: TOKEN,
+      signerName: "Robert Krebsbach",
+      signerTitle: "Authorized Signer",
+      signatureDataUrl: SIGNATURE,
+      agreedToServiceAgreement: true,
+      acknowledgedFcraRights: true,
+      acknowledgedUserNotice: true,
+      companyName: "MMC Agreement Test",
+      signerEmail: "robertk@saffhire.com",
+    });
+    const notice = vi.mocked(notifyOwner).mock.calls[0][0];
+    expect(notice.content).toContain("https://saffhire-signup-production.up.railway.app/countersign/11?token=");
+    expect(notice.to).toBeUndefined();
+
+    if (previousPublic === undefined) delete process.env.PUBLIC_APP_URL;
+    else process.env.PUBLIC_APP_URL = previousPublic;
+    if (previousApp === undefined) delete process.env.APP_URL;
+    else process.env.APP_URL = previousApp;
+  });
+
   it("rejects a missing or malformed signing token", async () => {
     const caller = appRouter.createCaller(publicCtx() as any);
     await expect(caller.agreement.clientSign({

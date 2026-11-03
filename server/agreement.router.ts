@@ -25,14 +25,28 @@ function parseLog(raw?: string | null) {
   }
 }
 
+function originFromEnv(raw: string) {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  if (!trimmed) return "";
+  try {
+    const parsed = new URL(/^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`);
+    if (!parsed.host) return "";
+    return parsed.origin;
+  } catch {
+    return "";
+  }
+}
+
 function originFromRequest(req: { headers?: Record<string, unknown> }) {
-  const envUrl = (process.env.PUBLIC_APP_URL || process.env.APP_URL || "").replace(/\/$/, "");
-  if (envUrl) return envUrl.startsWith("http") ? envUrl : `https://${envUrl}`;
+  const fromEnv = originFromEnv(process.env.PUBLIC_APP_URL || process.env.APP_URL || "");
+  if (fromEnv) return fromEnv;
   const headers = req.headers || {};
   const host = String(headers["x-forwarded-host"] || headers.host || "").split(",")[0].trim();
-  const proto = String(headers["x-forwarded-proto"] || "https").split(",")[0].trim() || "https";
+  const forwardedProto = String(headers["x-forwarded-proto"] || "").split(",")[0].trim();
+  const proto = forwardedProto || (host.startsWith("localhost") || host.startsWith("127.") ? "http" : "https");
   if (host) return `${proto}://${host}`;
-  if (process.env.RAILWAY_PUBLIC_DOMAIN) return `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  const railwayHost = (process.env.RAILWAY_PUBLIC_DOMAIN || "").trim();
+  if (railwayHost) return `https://${railwayHost}`;
   return "";
 }
 

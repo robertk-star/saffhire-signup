@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { getLoginUrl } from "@/const";
+import { getLoginUrl, toAbsoluteAppUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 
@@ -57,8 +57,7 @@ function LinkResult({ url }: { url: string }) {
 }
 
 export default function AgreementLinkAdmin() {
-  const { user } = useAuth();
-  const gate = AccessGate({ user });
+  const { user, loading } = useAuth();
   const [companyName, setCompanyName] = useState("");
   const [signerEmail, setSignerEmail] = useState("");
   const [createdUrl, setCreatedUrl] = useState("");
@@ -67,7 +66,7 @@ export default function AgreementLinkAdmin() {
 
   const createLink = trpc.agreement.createSigningLink.useMutation({
     onSuccess: (result) => {
-      setCreatedUrl(result.url);
+      setCreatedUrl(toAbsoluteAppUrl(result.url));
       toast.success("Signing link created. It has not been emailed.");
     },
     onError: (err) => toast.error(err.message),
@@ -75,12 +74,16 @@ export default function AgreementLinkAdmin() {
 
   const issueLink = trpc.agreement.issueSigningLink.useMutation({
     onSuccess: (result) => {
-      setIssuedUrl(result.url);
+      setIssuedUrl(toAbsoluteAppUrl(result.url));
       toast.success("Signing link ready. It has not been emailed.");
     },
     onError: (err) => toast.error(err.message),
   });
 
+  if (loading) {
+    return <div className="max-w-xl mx-auto p-8">Loading...</div>;
+  }
+  const gate = AccessGate({ user });
   if (gate) return gate;
 
   return (
