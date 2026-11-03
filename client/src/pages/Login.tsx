@@ -1,13 +1,18 @@
-import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
-import { useAuth } from "@/_core/hooks/useAuth";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Login() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
 
   useEffect(() => {
     if (user && !loading) {
@@ -38,39 +43,62 @@ export default function Login() {
           </p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-8 shadow-sm">
-          <div className="space-y-6">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-4">
-                Sign in with your SaffHire account to access the admin dashboard.
-              </p>
-            </div>
-
-            <Button asChild size="lg" className="w-full">
-              <a href={getLoginUrl()}>Sign in with SaffHire</a>
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="px-2 bg-card text-muted-foreground">Secure Login</span>
-              </div>
-            </div>
-
-            <p className="text-xs text-muted-foreground text-center">
-              Only authorized administrators can access this portal.
-              If you don't have access, contact your system administrator.
-            </p>
+        <form
+          className="bg-card border border-border rounded-lg p-8 shadow-sm space-y-4"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            setPending(true);
+            setError("");
+            try {
+              const response = await fetch("/api/admin/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+                body: JSON.stringify({ email, password }),
+              });
+              const body = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                setError(typeof body.error === "string" ? body.error : "Email or password is incorrect.");
+                return;
+              }
+              window.location.href = "/admin";
+            } catch {
+              setError("Could not reach the server.");
+            } finally {
+              setPending(false);
+            }
+          }}
+        >
+          <div>
+            <Label htmlFor="admin-email" className="mb-2 block">Email</Label>
+            <Input
+              id="admin-email"
+              type="email"
+              autoComplete="username"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
           </div>
-        </div>
-
-        <div className="text-center mt-8">
-          <p className="text-xs text-muted-foreground">
-            © 2026 SaffHire Background Screening. All rights reserved.
+          <div>
+            <Label htmlFor="admin-password" className="mb-2 block">Password</Label>
+            <Input
+              id="admin-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
+          </div>
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <Button type="submit" size="lg" className="w-full" disabled={pending}>
+            {pending ? "Signing in..." : "Sign in"}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Only the configured administrator can access this portal.
           </p>
-        </div>
+        </form>
       </div>
     </div>
   );

@@ -17,13 +17,18 @@ function urlFromBase(path: string, base: string) {
   }
 }
 
-// Login stays on this site when the OAuth portal URL was not provided at build time.
+// Without a hosted OAuth portal, admin login is the form on this site.
 export const getLoginUrl = () => {
   const oauthPortalUrl = import.meta.env.VITE_OAUTH_PORTAL_URL;
+  const portal = typeof oauthPortalUrl === "string" ? oauthPortalUrl.trim() : "";
+  if (!portal) return urlOnCurrentSite("/login").toString();
   const appId = import.meta.env.VITE_APP_ID ?? "";
   const redirectUri = `${window.location.origin}/api/oauth/callback`;
   const state = btoa(redirectUri);
-  const url = urlFromBase("/app-auth", typeof oauthPortalUrl === "string" ? oauthPortalUrl : "");
+  const url = urlFromBase("/app-auth", portal);
+  if (url.origin === window.location.origin && url.pathname === "/app-auth") {
+    return urlOnCurrentSite("/login").toString();
+  }
   url.searchParams.set("appId", String(appId));
   url.searchParams.set("redirectUri", redirectUri);
   url.searchParams.set("state", state);
